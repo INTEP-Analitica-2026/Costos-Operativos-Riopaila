@@ -282,7 +282,8 @@ with st.sidebar:
     if archivo:
         df_raw = cargar_y_limpiar(archivo)
         anos_disp = sorted(df_raw['Año'].unique().tolist())
-        grupos_disp = sorted(df_raw['GRUPO LABORES'].unique().tolist())
+        grupos_disp = sorted(df_raw['GRUPO LABORES'].dropna().unique().tolist())
+        
 
         anos_sel = st.multiselect(
             "Años a analizar",
