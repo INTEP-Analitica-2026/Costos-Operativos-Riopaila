@@ -1309,11 +1309,15 @@ with tab7:
             title=f'Proyeccion de Costos — {grupo_proy} ({meses_proy} meses)',
             labels={'Costo_Estimado': 'Costo Promedio por Labor ($)', 'Fecha': ''}
         )
-        fig_proy.add_vline(
-            x=str(pd.Timestamp(f'{df["Año"].max()}-12-01')),
-            line_dash='dash', line_color='gray',
-            annotation_text='Inicio proyeccion'
-        )
+        fig_proy.add_trace(go.Scatter(
+            x=[pd.Timestamp(f'{df["Año"].max()}-12-01'),
+            pd.Timestamp(f'{df["Año"].max()}-12-01')],
+            y=[0, df_combined['Costo_Estimado'].max()],
+            mode='lines',
+            line=dict(color='gray', dash='dash', width=1.5),
+            name='Inicio proyeccion',
+            showlegend=True
+        ))
         fig_proy.update_layout(height=400)
         st.plotly_chart(fig_proy, use_container_width=True)
 
