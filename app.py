@@ -857,38 +857,21 @@ with tab2:
 
         fig_pair, ax = plt.subplots(figsize=(12, 8))
         plt.close(fig_pair)
-        g = sns.pairplot(
+         g = sns.pairplot(
             df_pair,
             vars=cols_pair,
             hue='GRUPO LABORES',
             palette='viridis',
             diag_kind='kde',
-            plot_kws={'alpha': 0.4, 's': 15},
-            legend=False
+            plot_kws={'alpha': 0.4, 's': 15}
         )
+        # Quitar leyenda automatica y reponerla abajo
+        if g._legend:
+            g._legend.remove()
         g.fig.suptitle(
             'Relaciones Multiples: Produccion vs Costos',
-            y=0.02, fontsize=13, fontweight='bold', color='white',
-            verticalalignment='bottom'
+            y=1.02, fontsize=13, fontweight='bold'
         )
-        # Leyenda abajo centrada
-        handles = g._legend_data.values()
-        labels  = g._legend_data.keys()
-        g.fig.legend(
-            handles=handles,
-            labels=labels,
-            title='GRUPO LABORES',
-            loc='lower center',
-            bbox_to_anchor=(0.5, -0.12),
-            ncol=4,
-            frameon=True,
-            facecolor='#1b2838',
-            edgecolor='#4a6fa5',
-            labelcolor='white',
-            title_fontsize=9,
-            fontsize=8
-        )
-        g.fig.subplots_adjust(bottom=0.18)
         g.fig.patch.set_facecolor('#0e1117')
         for ax in g.axes.flatten():
             ax.set_facecolor('#0e1117')
