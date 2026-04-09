@@ -1457,7 +1457,7 @@ with tab7:
            "Tipo de tenencia", ['Propia (10)', 'Alquilada (20)', 'Participacion (30)'],
             horizontal=True
         )
-       ten_map = {'Propia (10)': 10, 'Alquilada (20)': 20, 'Participacion (30)': 30}
+        ten_map = {'Propia (10)': 10, 'Alquilada (20)': 20, 'Participacion (30)': 30}
         ten_val = ten_map[tenencia_sim]
 
         n_labores_sim = st.slider("Numero de labores estimadas en el mes", 1, 200, 50)
