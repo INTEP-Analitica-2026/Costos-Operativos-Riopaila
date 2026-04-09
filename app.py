@@ -117,7 +117,7 @@ def cargar_y_limpiar(archivo):
     df.drop(columns=[c for c in cols_drop if c in df.columns], inplace=True)
 
     # Labels tenencia
-    ten_labels = {10: 'Propia', 20: 'Alquilada', 30: 'Participacion'}
+    ten_labels = {10: 'Propia Baja', 20: 'Propia Media', 30: 'Propia Alta'}
     df['Tenencia_Label'] = df['Tenencia'].map(ten_labels).fillna('Otra')
 
     return df
@@ -383,9 +383,9 @@ with tab1:
         st.markdown("""
 | Integrante | Rol |
 |---|---|
+| **Cesar Augusto Tirado** | Analista de datos / Modelado predictivo |
 | **Eliana Villanueva** | Analista de datos / EDA y visualizacion |
-| **Francisco Jaier Trejos** | Analista de datos / Modelado predictivo |
-| **Cesar Augusto Tirado** | Analista de datos / Clustering y series temporales |
+| **Francisco Jaier Trejos** | Analista de datos / Clustering y series temporales |
 
 **Fecha:** Abril 2026 | **Repositorio:** https://github.com/INTEP-Analitica-2026/Costos-Operativos-Riopaila
         """)
@@ -1454,10 +1454,10 @@ with tab7:
         )
 
         tenencia_sim = st.radio(
-           "Tipo de tenencia", ['Propia (10)', 'Alquilada (20)', 'Participacion (30)'],
+            "Tipo de tenencia", ['Propia Baja (10)', 'Propia Media (20)', 'Propia Alta (30)'],
             horizontal=True
         )
-        ten_map = {'Propia (10)': 10, 'Alquilada (20)': 20, 'Participacion (30)': 30}
+        ten_map = {'Propia Baja (10)': 10, 'Propia Media (20)': 20, 'Propia Alta (30)': 30}
         ten_val = ten_map[tenencia_sim]
 
         n_labores_sim = st.slider("Numero de labores estimadas en el mes", 1, 200, 50)
@@ -1532,6 +1532,14 @@ with tab7:
                 help=f"Basado en costo unitario historico ${costo_unitario:,.0f}/unidad"
             )
 
+        # Bloque 1 — Explicacion de los modelos
+        st.markdown("""
+> 🌲 **Random Forest** captura relaciones no lineales entre grupo de labor, mes y cantidad producida
+> — es el modelo mas preciso (R²≈0.72). La **Regresion Lineal** asume una relacion directa
+> y tiende a sobreestimar en labores con combinaciones complejas de variables.
+> **Se recomienda usar el valor de Random Forest** para presupuestar.
+        """)
+
         # Clasificacion: seria costosa?
         clf_c = resultados['clf']
         umbral = clf_c['umbral']
@@ -1547,6 +1555,13 @@ with tab7:
                 ✅ <b>Labor dentro del rango normal de costos</b><br>
                 El costo estimado esta por debajo del umbral P75 (${umbral:,.0f}).
             </div>""", unsafe_allow_html=True)
+
+        st.markdown(f"""
+> ℹ️ **Como interpretar la alerta:** Una labor es clasificada como **COSTOSA** cuando su costo
+> historico promedio supera el percentil 75 del dataset (${umbral:,.0f}).
+> Esto no significa que deba cancelarse — significa que amerita una revision antes de ejecutar:
+> verificar cantidad planificada, proveedor de insumos y lote asignado.
+        """)
 
     st.markdown("---")
     st.markdown("### 📅 Proyeccion de Costos — Proximos Meses")
@@ -1603,6 +1618,14 @@ with tab7:
         ))
         fig_proy.update_layout(height=400)
         st.plotly_chart(fig_proy, use_container_width=True)
+        st.markdown("""
+> 📈 **Como leer este grafico:** La **linea verde** es el historico real 2021-2025.
+> La **linea roja** es la proyeccion calculada con el promedio mensual del grupo seleccionado
+> mas un ajuste de **inflacion del 5% anual** — estimacion conservadora basada en la
+> variacion de costos observada en el periodo analizado. La **linea punteada vertical**
+> marca el inicio de la proyeccion. Si la linea roja sube respecto al historico,
+> ese grupo tendra mayores costos en los meses proyectados.
+        """)
 
     st.markdown("### 💡 Comparativa por Grupo — Mes Seleccionado")
     mes_comp = st.slider("Mes para comparar grupos", 1, 12, 7, key='mes_comp')
@@ -1624,6 +1647,14 @@ with tab7:
                           annotation_text=f'Umbral P75 ${umbral:,.0f}')
     fig_comp_g.update_layout(height=430, xaxis_tickangle=-45, coloraxis_showscale=False)
     st.plotly_chart(fig_comp_g, use_container_width=True)
+    st.markdown(f"""
+> 🔴 **Como leer este grafico:** Las **barras rojas** superan el umbral P75 — son los grupos
+> de labor que historicamente generan labores costosas en ese mes. Las **barras verdes**
+> estan por debajo del umbral y representan labores dentro del rango normal de costos.
+> La **linea punteada roja** es el umbral P75 (${umbral:,.0f}) — el punto de corte que usa
+> el modelo de clasificacion para definir si una labor es costosa o normal.
+> Usa este grafico para decidir que grupos de labor priorizar en la planificacion del mes.
+    """)
 
 
 # ── Footer ────────────────────────────────────────────────────
