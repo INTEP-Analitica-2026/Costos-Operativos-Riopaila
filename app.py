@@ -710,24 +710,6 @@ with tab2:
 > Este es el hallazgo mas accionable desde el punto de vista financiero.
         """)
 
-        st.markdown("### 2.9 Matriz de Correlacion")
-        cols_corr = [c for c in ['Cant.producida real', 'Csts.real.cargo',
-                                   'Csts.unitarios real', 'Año', 'Mes', 'Tarifa']
-                     if c in df.columns]
-        corr_mat = df[cols_corr].corr()
-        fig_corr = px.imshow(
-            corr_mat, text_auto='.2f', color_continuous_scale='RdYlGn',
-            title='Matriz de Correlacion: Variables del Proyecto',
-            zmin=-1, zmax=1
-        )
-        fig_corr.update_layout(height=450)
-        st.plotly_chart(fig_corr, use_container_width=True)
-        st.markdown("""
-> **Interpretacion — 2.9:** La correlacion mas fuerte es entre `Cant.producida real` y `Csts.real.cargo`
-> — **la relacion mas importante del modelo**. El `Año` tiene correlacion positiva baja con el costo,
-> confirmando la inflacion gradual. Variables con correlacion ~0 no aportan poder predictivo lineal.
-        """)
-
     with subtab5:
         # ── 2.7 Costos por Tenencia ──────────────────────────────────
         st.markdown("### 2.7 Costos por Tipo de Tenencia")
@@ -778,51 +760,9 @@ with tab2:
 
         st.markdown("---")
 
-        # ── 2.8 Top 10 Materiales ────────────────────────────────────
-        st.markdown("### 2.8 Top 10 Materiales mas Costosos")
-        col_mat = next((c for c in ['Texto breve de material', 'Numero de material']
-                        if c in df.columns), None)
-        if col_mat:
-            top_mat = (df.groupby(col_mat)['Csts.real.cargo']
-                       .sum().sort_values(ascending=False).head(10).reset_index())
-            top_mat.columns = ['Material', 'Costo_Total']
-            top_mat['% Total'] = (top_mat['Costo_Total'] / df['Csts.real.cargo'].sum() * 100).round(1)
-            top_mat['Costo_Promedio'] = df.groupby(col_mat)['Csts.real.cargo'].mean().reindex(
-                top_mat['Material'].values).values.round(0)
-
-            fig_mat = px.bar(
-                top_mat, x='Costo_Total', y='Material',
-                orientation='h', color='Costo_Total',
-                color_continuous_scale='Reds',
-                title='Top 10 Materiales por Costo Total Acumulado (2021-2026)',
-                text=[f'${v/1e9:.1f}B  ({p:.1f}%)' for v, p in
-                      zip(top_mat['Costo_Total'], top_mat['% Total'])],
-                labels={'Costo_Total': 'Costo Total ($)', 'Material': ''}
-            )
-            fig_mat.update_layout(height=480, coloraxis_showscale=False)
-            fig_mat.update_traces(textposition='outside')
-            st.plotly_chart(fig_mat, use_container_width=True)
-
-            st.dataframe(
-                top_mat.style.format({
-                    'Costo_Total': '${:,.0f}',
-                    'Costo_Promedio': '${:,.0f}',
-                    '% Total': '{:.1f}%'
-                }),
-                use_container_width=True, hide_index=True
-            )
-            st.markdown(f"""<div class="alert-box">
-                <b>💡 Hallazgo clave:</b>
-                <b>{top_mat.iloc[0]['Material']}</b> + <b>{top_mat.iloc[1]['Material']}</b>
-                suman <b>${(top_mat.iloc[0]['Costo_Total']+top_mat.iloc[1]['Costo_Total'])/1e9:.0f}B</b>
-                = <b>{(top_mat.iloc[0]['% Total']+top_mat.iloc[1]['% Total']):.0f}%</b> del costo total.
-                Un contrato de largo plazo con el proveedor de abono podria representar ahorros
-                de cientos de miles de millones en el horizonte del proyecto.
-            </div>""", unsafe_allow_html=True)
-
         st.markdown("---")
 
-        # ── 2.9 Matriz de Correlacion y Pairplot ─────────────────────
+                # ── 2.9 Matriz de Correlacion y Pairplot ─────────────────────
         st.markdown("### 2.9 Matriz de Correlacion de Variables")
         cols_corr = [c for c in ['Cant.producida real', 'Csts.real.cargo',
                                    'Csts.unitarios real', 'Año', 'Mes', 'Tarifa']
