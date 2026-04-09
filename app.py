@@ -863,12 +863,32 @@ with tab2:
             hue='GRUPO LABORES',
             palette='viridis',
             diag_kind='kde',
-            plot_kws={'alpha': 0.4, 's': 15}
+            plot_kws={'alpha': 0.4, 's': 15},
+            legend=False
         )
         g.fig.suptitle(
             'Relaciones Multiples: Produccion vs Costos',
-            y=1.02, fontsize=13, fontweight='bold'
+            y=0.02, fontsize=13, fontweight='bold', color='white',
+            verticalalignment='bottom'
         )
+        # Leyenda abajo centrada
+        handles = g._legend_data.values()
+        labels  = g._legend_data.keys()
+        g.fig.legend(
+            handles=handles,
+            labels=labels,
+            title='GRUPO LABORES',
+            loc='lower center',
+            bbox_to_anchor=(0.5, -0.12),
+            ncol=4,
+            frameon=True,
+            facecolor='#1b2838',
+            edgecolor='#4a6fa5',
+            labelcolor='white',
+            title_fontsize=9,
+            fontsize=8
+        )
+        g.fig.subplots_adjust(bottom=0.18)
         g.fig.patch.set_facecolor('#1b2838')
         for ax in g.axes.flatten():
             ax.set_facecolor('#243447')
