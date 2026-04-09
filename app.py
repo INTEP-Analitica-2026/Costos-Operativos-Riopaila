@@ -869,14 +869,25 @@ with tab2:
             'Relaciones Multiples: Produccion vs Costos',
             y=1.02, fontsize=13, fontweight='bold'
         )
-        g.fig.patch.set_facecolor('#0e1117')
+        g.fig.patch.set_facecolor('#1b2838')
         for ax in g.axes.flatten():
-            ax.set_facecolor('#0e1117')
+            ax.set_facecolor('#243447')
             ax.tick_params(colors='white')
             ax.xaxis.label.set_color('white')
             ax.yaxis.label.set_color('white')
+            ax.title.set_color('white') if ax.get_title() else None
             for spine in ax.spines.values():
-                spine.set_edgecolor('#444')
+                spine.set_edgecolor('#4a6fa5')
+                spine.set_linewidth(0.8)
+        g.fig.patch.set_alpha(0.95)
+        for ax in g.axes.flatten():
+            ax.patch.set_alpha(0.85)
+        if g._legend:
+            g._legend.get_frame().set_facecolor('#1b2838')
+            g._legend.get_frame().set_edgecolor('#4a6fa5')
+            for text in g._legend.get_texts():
+                text.set_color('white')
+            g._legend.get_title().set_color('white')
         plt.tight_layout()
         st.pyplot(g.fig, use_container_width=True)
         plt.close('all')
