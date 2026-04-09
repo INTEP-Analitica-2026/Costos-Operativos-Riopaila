@@ -678,7 +678,7 @@ with tab2:
         """)
 
     with subtab4:
-        st.markdown("### 2.8 Top 10 Materiales mas Costosos")
+        st.markdown("### Top 10 Materiales mas Costosos")
         col_mat = next((c for c in ['Texto breve de material', 'Numero de material']
                         if c in df.columns), None)
         if col_mat:
