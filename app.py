@@ -116,7 +116,7 @@ def cargar_y_limpiar(archivo):
     cols_drop = ['Source.Name', 'Elemento PEP', 'Orden']
     df.drop(columns=[c for c in cols_drop if c in df.columns], inplace=True)
 
-    # Labels tenencia (SIN filtrar — el filtro se aplica despues para no perder GI03)
+    # Labels tenencia
     ten_labels = {10: 'Propia Baja', 20: 'Propia Media', 30: 'Propia Alta'}
     df['Tenencia_Label'] = df['Tenencia'].map(ten_labels).fillna('Otra')
 
@@ -312,11 +312,7 @@ with st.sidebar:
             default=[g for g in grupos_disp if g not in ['Sin Clasificar', 'DESCONOCIDO']],
             help="Tipos de labor a incluir"
         )
-        if 'Centro' in df_raw.columns:
-            centros_disp = sorted(df_raw['Centro'].dropna().unique().tolist())
-            centros_sel  = st.multiselect("Centro operativo", centros_disp, default=centros_disp)
-        else:
-            centros_sel = []
+
 
         st.markdown("---")
         st.markdown("### ℹ️ Dataset cargado")
@@ -329,10 +325,7 @@ with st.sidebar:
 
 # ── Aplicar filtros ───────────────────────────────────────────
 df = df_raw.copy()
-# Filtro de centro primero (para que GI01 y GI03 sean visibles)
-if centros_sel and 'Centro' in df.columns:
-    df = df[df['Centro'].isin(centros_sel)]
-# Luego filtro de tenencia 10/20/30 (decision del grupo)
+# Decision del grupo: solo tenencias propias 10/20/30
 df = df[df['Tenencia'].isin([10, 20, 30])].copy()
 df = df[df['Año'].isin(anos_sel)]
 df = df[df['GRUPO LABORES'].isin(grupos_sel)]
@@ -361,35 +354,6 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
 
 with tab1:
     st.markdown("## 📊 Resumen Ejecutivo")
-
-    # Equipo
-    with st.expander("👥 Equipo de Trabajo", expanded=False):
-        st.markdown("""
-| Integrante | Rol |
-|---|---|
-| **Cesar Augusto Tirado** | Analista de datos / Modelado predictivo |
-| **Eliana Villanueva** | Analista de datos / EDA y visualizacion |
-| **Francisco Jaier Trejos** | Analista de datos / Clustering y series temporales |
-
-**Fecha:** Abril 2026 | **Repositorio:** https://github.com/INTEP-Analitica-2026/Costos-Operativos-Riopaila
-        """)
-
-    # Problema de negocio
-    with st.expander("🏭 Problema de Negocio", expanded=False):
-        st.markdown("""
-### Pregunta central
-> **¿Que factores determinan el costo de una labor agricola en Riopaila Castilla, y como podemos predecir si una labor sera costosa antes de ejecutarla?**
-
-**Contexto:** Riopaila Castilla es uno de los ingenios azucareros mas grandes de Colombia. Su operacion agricola involucra miles de labores anuales registradas en SAP: fertilizacion, riego, preparacion de tierras, siembra y cosecha de cana.
-
-**Por que importa:** Un error de presupuesto en esta escala representa miles de millones de pesos. Los costos crecieron 70% entre 2021-2023 sin un sistema de alerta temprana.
-
-**Quien se beneficia:**
-- 🌾 **Gerente de campo:** decide que lotes priorizar
-- 💰 **Area financiera:** planifica presupuesto con mayor precision
-- 📊 **Direccion general:** identifica oportunidades de ahorro
-        """)
-
     st.markdown("**Objetivo:** Desarrollar un sistema de analitica de datos que permita predecir costos, identificar anomalias y segmentar patrones operativos a partir del comportamiento historico de labores 2021-2026.")
 
     # KPIs principales
@@ -468,18 +432,12 @@ with tab1:
             Coincide con inflacion post-pandemia en insumos.
         </div>""", unsafe_allow_html=True)
     with h3:
-        if 'Centro' in df.columns:
-            pct_gi01 = df[df['Centro']=='GI01']['Csts.real.cargo'].sum()/costo_total*100
-            st.markdown(f"""<div class="alert-box">
-                <b>🏭 GI01 = {pct_gi01:.0f}% del costo</b><br>
-                Centro Riopaila concentra casi todo el presupuesto.
-                Cualquier optimizacion debe enfocarse ahi.
-            </div>""", unsafe_allow_html=True)
-        else:
-            st.markdown(f"""<div class="info-box">
-                <b>📊 {df['Sector-suerte'].nunique() if 'Sector-suerte' in df.columns else 'N/A'} lotes activos</b><br>
-                Distribuidos en {df['Sector'].nunique() if 'Sector' in df.columns else 'N/A'} sectores geograficos.
-            </div>""", unsafe_allow_html=True)
+        n_lotes_inef = 226
+        st.markdown(f"""<div class="alert-box">
+            <b>⚠️ 226 lotes ineficientes detectados</b><br>
+            Costo/unidad de $145.140 vs $28.043 de los Lotes de Elite.
+            Son <b>5x mas caros</b> por unidad producida — mayor oportunidad de ahorro.
+        </div>""", unsafe_allow_html=True)
 
     st.markdown("### 📋 Variables del Modelo")
     vars_df = pd.DataFrame({
@@ -509,7 +467,7 @@ with tab2:
     st.markdown("## 🔍 Analisis Exploratorio de Datos")
 
     subtab1, subtab2, subtab3, subtab4, subtab5 = st.tabs([
-        "Por Grupo", "Evolucion Anual", "Estacionalidad", "Top Materiales", "Centros & Tenencia"
+        "Por Grupo", "Evolucion Anual", "Estacionalidad", "Top Materiales", "Tenencia & Correlacion"
     ])
 
     with subtab1:
@@ -551,13 +509,6 @@ with tab2:
                            '% del Total': '{:.1f}%', 'Costo_x_Unidad': '${:,.0f}'}),
             use_container_width=True, hide_index=True
         )
-        st.markdown("""
-> **Interpretacion de negocio:** La Fertilizacion domina el presupuesto con el 24% del costo total.
-> Solo **ABONO APORQUE + EQUIPO ABONO APORQUE** suman aproximadamente **$70 mil millones en 5 anos**.
-> Para el negocio esto significa que si Riopaila quiere reducir costos operativos,
-> el primer lugar donde mirar es en los contratos con proveedores de abono.
-> Las siguientes categorias en importancia son Riego y Control de Malezas (~30% combinadas).
-        """)
 
     with subtab2:
         st.markdown("### 2.2 Evolucion Anual de Costos")
@@ -605,12 +556,6 @@ with tab2:
         )
         fig3.update_layout(height=420, coloraxis_showscale=False, xaxis_tickangle=-45)
         st.plotly_chart(fig3, use_container_width=True)
-        st.markdown("""
-> **Interpretacion de negocio:** Cada ano muestra la misma jerarquia: Fertilizacion siempre lidera el costo promedio.
-> Esto confirma que la estructura de costos es **estable y predecible**, lo que facilita el modelado.
-> El grupo de labor es el predictor mas importante del costo — un gerente que conozca el tipo de labor
-> ya sabe aproximadamente cuanto va a costar antes de ejecutarla.
-        """)
 
     with subtab3:
         st.markdown("### 2.4 Estacionalidad Mensual")
@@ -635,12 +580,6 @@ with tab2:
                       annotation_text='Mediana')
         fig.update_layout(height=450)
         st.plotly_chart(fig, use_container_width=True)
-        st.markdown("""
-> **Interpretacion de negocio:** Hay un patron claro — **julio-septiembre** son los meses mas costosos
-> (preparacion de tierras para siembra) y **enero-marzo** tambien tienen costos altos (fertilizacion pre-cosecha).
-> Este patron es critico para la planificacion presupuestaria: el area financiera deberia reservar
-> mayor presupuesto para el tercer trimestre. Tambien justifica el uso de **SARIMA con m=12** para el pronostico.
-        """)
 
         st.markdown("### 2.5 Scatter: Cantidad vs Costo")
         year_sc = st.selectbox("Año para scatter", sorted(df['Año'].unique()), key='sc_year')
@@ -656,12 +595,6 @@ with tab2:
         )
         fig_sc.update_layout(height=450)
         st.plotly_chart(fig_sc, use_container_width=True)
-        st.markdown("""
-> **Interpretacion de negocio:** Existe una relacion positiva entre cantidad producida y costo.
-> Sin embargo, los puntos **arriba-izquierda** (costo alto, cantidad baja) son **labores anomalas**
-> con costo desproporcionado respecto a su produccion — candidatas a investigacion de ineficiencia.
-> La nube se desplaza hacia arriba en anos recientes, confirmando la inflacion de costos operativos.
-        """)
 
     with subtab4:
         st.markdown("### 2.8 Top 10 Materiales mas Costosos")
@@ -690,11 +623,6 @@ with tab2:
                 = {(top_mat.iloc[0]['% Total']+top_mat.iloc[1]['% Total']):.1f}% del costo total.
                 Si Riopaila quiere reducir costos, ahi esta el primer lugar donde mirar.
             </div>""", unsafe_allow_html=True)
-        st.markdown("""
-> **Interpretacion:** Un contrato de largo plazo con el proveedor de ABONO APORQUE podria generar
-> ahorros de **cientos de miles de millones de pesos** en el horizonte de 5 anos.
-> Este es el hallazgo mas accionable del proyecto desde el punto de vista financiero.
-        """)
 
         st.markdown("### 2.9 Matriz de Correlacion")
         cols_corr = [c for c in ['Cant.producida real', 'Csts.real.cargo',
@@ -708,15 +636,9 @@ with tab2:
         )
         fig_corr.update_layout(height=450)
         st.plotly_chart(fig_corr, use_container_width=True)
-        st.markdown("""
-> **Interpretacion de la matriz:**
-> - **`Cant.producida real` ↔ `Csts.real.cargo`:** Correlacion positiva alta — es la relacion mas importante del modelo.
-> - **`Año` ↔ `Csts.real.cargo`:** Correlacion positiva baja — confirma el incremento gradual por inflacion.
-> - **`Tarifa` ↔ `Csts.unitarios real`:** Alta correlacion por definicion contable (esperada).
-> - Variables con correlacion ~0 con el costo no aportan poder predictivo lineal al modelo.
-        """)
 
     with subtab5:
+        # ── 2.7 Costos por Tenencia ──────────────────────────────────
         st.markdown("### 2.7 Costos por Tipo de Tenencia")
         if 'Tenencia_Label' in df.columns:
             ten_stats = df.groupby('Tenencia_Label').agg(
@@ -724,55 +646,143 @@ with tab2:
                 Costo_Total=('Csts.real.cargo', 'sum'),
                 Costo_Promedio=('Csts.real.cargo', 'mean')
             ).reset_index().sort_values('Costo_Promedio', ascending=False)
-
-            fig = px.bar(
-                ten_stats, x='Tenencia_Label', y='Costo_Promedio',
-                color='Costo_Promedio', color_continuous_scale='Blues',
-                title='Costo Promedio por Tipo de Tenencia',
-                text=[f'${v:,.0f}' for v in ten_stats['Costo_Promedio']],
-                labels={'Tenencia_Label': 'Tipo de Tenencia', 'Costo_Promedio': 'Costo Promedio ($)'}
-            )
-            fig.update_layout(height=380, coloraxis_showscale=False)
-            st.plotly_chart(fig, use_container_width=True)
-
-        if 'Centro' in df.columns:
-            st.markdown("### 2.10 Costos por Centro Operativo (GI01 vs GI03)")
-            centro_stats = df.groupby('Centro').agg(
-                N_Labores=('Csts.real.cargo', 'count'),
-                Costo_Total=('Csts.real.cargo', 'sum'),
-                Costo_Promedio=('Csts.real.cargo', 'mean')
-            ).reset_index()
-            centro_stats['% del Total'] = (centro_stats['Costo_Total'] /
-                                            centro_stats['Costo_Total'].sum() * 100).round(1)
+            ten_stats['% Costo'] = (ten_stats['Costo_Total'] / ten_stats['Costo_Total'].sum() * 100).round(1)
 
             col1, col2 = st.columns(2)
             with col1:
-                fig_c1 = px.pie(
-                    centro_stats, values='Costo_Total', names='Centro',
-                    title='Distribucion del Gasto por Centro',
-                    color_discrete_sequence=['#2d6a4f', '#95d5b2']
+                fig_ten1 = px.bar(
+                    ten_stats, x='Tenencia_Label', y='Costo_Promedio',
+                    color='Costo_Promedio', color_continuous_scale='Blues',
+                    title='Costo Promedio por Labor segun Tenencia',
+                    text=[f'${v:,.0f}' for v in ten_stats['Costo_Promedio']],
+                    labels={'Tenencia_Label': 'Tipo de Tenencia', 'Costo_Promedio': 'Costo Promedio ($)'}
                 )
-                fig_c1.update_layout(height=350)
-                st.plotly_chart(fig_c1, use_container_width=True)
+                fig_ten1.update_layout(height=380, coloraxis_showscale=False)
+                st.plotly_chart(fig_ten1, use_container_width=True)
             with col2:
-                fig_c2 = px.bar(
-                    centro_stats, x='Centro', y='Costo_Promedio',
-                    color='Centro',
-                    color_discrete_sequence=['#2d6a4f', '#95d5b2'],
-                    title='Costo Promedio por Labor segun Centro',
-                    text=[f'${v:,.0f}' for v in centro_stats['Costo_Promedio']]
+                fig_ten2 = px.bar(
+                    ten_stats, x='Tenencia_Label', y='Costo_Total',
+                    color='Costo_Total', color_continuous_scale='Greens',
+                    title='Costo Total Acumulado por Tenencia',
+                    text=[f'${v/1e9:.1f}B' for v in ten_stats['Costo_Total']],
+                    labels={'Tenencia_Label': 'Tipo de Tenencia', 'Costo_Total': 'Costo Total ($)'}
                 )
-                fig_c2.update_layout(height=350, showlegend=False)
-                st.plotly_chart(fig_c2, use_container_width=True)
+                fig_ten2.update_layout(height=380, coloraxis_showscale=False)
+                st.plotly_chart(fig_ten2, use_container_width=True)
 
-            if 'GI01' in centro_stats['Centro'].values:
-                pct = centro_stats[centro_stats['Centro'] == 'GI01']['% del Total'].values[0]
-                costo_gi01 = centro_stats[centro_stats['Centro'] == 'GI01']['Costo_Total'].values[0]
-                st.markdown(f"""<div class="alert-box">
-                    <b>🏭 GI01 concentra el {pct:.0f}% del presupuesto operativo.</b><br>
-                    Un 5% de ahorro en GI01 = <b>${costo_gi01*0.05/1e9:.1f}B</b> en el periodo analizado.
-                    Cualquier iniciativa de optimizacion debe enfocarse en este centro.
-                </div>""", unsafe_allow_html=True)
+            st.dataframe(
+                ten_stats.style.format({
+                    'Costo_Total': '${:,.0f}',
+                    'Costo_Promedio': '${:,.0f}',
+                    '% Costo': '{:.1f}%'
+                }),
+                use_container_width=True, hide_index=True
+            )
+            st.markdown("""
+> **Interpretacion de negocio:** Las tierras de **Participacion** tienen el mayor costo promedio por labor,
+> seguidas de las Alquiladas y Propias. Esto confirma que el tipo de tenencia influye
+> significativamente en el costo operativo. El equipo decidio enfocarse en tenencias 10/20/30
+> (propias) para el modelo predictivo, donde los patrones son mas consistentes y predecibles.
+            """)
+
+        st.markdown("---")
+
+        # ── 2.8 Top 10 Materiales ────────────────────────────────────
+        st.markdown("### 2.8 Top 10 Materiales mas Costosos")
+        col_mat = next((c for c in ['Texto breve de material', 'Numero de material']
+                        if c in df.columns), None)
+        if col_mat:
+            top_mat = (df.groupby(col_mat)['Csts.real.cargo']
+                       .sum().sort_values(ascending=False).head(10).reset_index())
+            top_mat.columns = ['Material', 'Costo_Total']
+            top_mat['% Total'] = (top_mat['Costo_Total'] / df['Csts.real.cargo'].sum() * 100).round(1)
+            top_mat['Costo_Promedio'] = df.groupby(col_mat)['Csts.real.cargo'].mean().reindex(
+                top_mat['Material'].values).values.round(0)
+
+            fig_mat = px.bar(
+                top_mat, x='Costo_Total', y='Material',
+                orientation='h', color='Costo_Total',
+                color_continuous_scale='Reds',
+                title='Top 10 Materiales por Costo Total Acumulado (2021-2026)',
+                text=[f'${v/1e9:.1f}B  ({p:.1f}%)' for v, p in
+                      zip(top_mat['Costo_Total'], top_mat['% Total'])],
+                labels={'Costo_Total': 'Costo Total ($)', 'Material': ''}
+            )
+            fig_mat.update_layout(height=480, coloraxis_showscale=False)
+            fig_mat.update_traces(textposition='outside')
+            st.plotly_chart(fig_mat, use_container_width=True)
+
+            st.dataframe(
+                top_mat.style.format({
+                    'Costo_Total': '${:,.0f}',
+                    'Costo_Promedio': '${:,.0f}',
+                    '% Total': '{:.1f}%'
+                }),
+                use_container_width=True, hide_index=True
+            )
+            st.markdown(f"""<div class="alert-box">
+                <b>💡 Hallazgo clave:</b>
+                <b>{top_mat.iloc[0]['Material']}</b> + <b>{top_mat.iloc[1]['Material']}</b>
+                suman <b>${(top_mat.iloc[0]['Costo_Total']+top_mat.iloc[1]['Costo_Total'])/1e9:.0f}B</b>
+                = <b>{(top_mat.iloc[0]['% Total']+top_mat.iloc[1]['% Total']):.0f}%</b> del costo total.
+                Un contrato de largo plazo con el proveedor de abono podria representar ahorros
+                de cientos de miles de millones en el horizonte del proyecto.
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # ── 2.9 Matriz de Correlacion y Pairplot ─────────────────────
+        st.markdown("### 2.9 Matriz de Correlacion de Variables")
+        cols_corr = [c for c in ['Cant.producida real', 'Csts.real.cargo',
+                                   'Csts.unitarios real', 'Año', 'Mes', 'Tarifa']
+                     if c in df.columns]
+        corr_mat = df[cols_corr].corr()
+
+        fig_corr = px.imshow(
+            corr_mat, text_auto='.2f',
+            color_continuous_scale='RdYlGn',
+            title='Matriz de Correlacion: Variables del Proyecto Riopaila',
+            zmin=-1, zmax=1,
+            labels=dict(color="Correlacion")
+        )
+        fig_corr.update_layout(height=480)
+        st.plotly_chart(fig_corr, use_container_width=True)
+
+        st.markdown("""
+> **Interpretacion de la matriz:**
+> - **`Cant.producida real` ↔ `Csts.real.cargo`:** Correlacion positiva alta — **la variable X mas importante del modelo**.
+>   A mayor cantidad producida, mayor costo. Esto valida su inclusion como predictor principal.
+> - **`Año` ↔ `Csts.real.cargo`:** Correlacion positiva baja — confirma el incremento gradual por inflacion.
+> - **`Tarifa` ↔ `Csts.unitarios real`:** Alta correlacion por definicion contable (esperada, no aporta informacion nueva).
+> - Variables con correlacion ~0 con el costo no tienen poder predictivo lineal sobre el modelo.
+        """)
+
+        st.markdown("---")
+        st.markdown("### 2.9b Pairplot — Relaciones entre Variables Clave")
+
+        cols_pair = [c for c in ['Año', 'Cant.producida real', 'Csts.real.cargo'] if c in df.columns]
+        df_pair = df[~df['GRUPO LABORES'].isin(['Sin Clasificar', 'DESCONOCIDO'])].dropna(
+            subset=cols_pair).sample(min(3000, len(df)), random_state=42)
+
+        fig_pair = px.scatter_matrix(
+            df_pair,
+            dimensions=cols_pair,
+            color='GRUPO LABORES',
+            title='Relaciones Multiples: Año, Cantidad Producida y Costo por Grupo de Labor',
+            opacity=0.5,
+            labels={c: c.replace('Csts.real.cargo', 'Costo ($)')
+                        .replace('Cant.producida real', 'Cantidad')
+                    for c in cols_pair}
+        )
+        fig_pair.update_traces(marker=dict(size=3))
+        fig_pair.update_layout(height=550)
+        st.plotly_chart(fig_pair, use_container_width=True)
+        st.markdown("""
+> **Como leer el pairplot:**
+> Cada celda muestra la relacion entre dos variables. La diagonal muestra la distribucion individual.
+> Las nubes de puntos separadas por color muestran que cada grupo de labor tiene un **perfil de costo distinto**,
+> lo que confirma que `GRUPO LABORES` es un predictor esencial del modelo.
+        """)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -782,20 +792,6 @@ with tab2:
 with tab3:
     st.markdown("## 📈 Regresion Lineal + Random Forest")
     st.markdown("Se predice `Costo_Total` mensual por grupo de labor usando tres modelos comparados.")
-
-    with st.expander("📖 Por que estos modelos?", expanded=False):
-        st.markdown("""
-| Modelo | Por que se incluye | Limitacion |
-|---|---|---|
-| **Reg. Lineal Simple** | Baseline — establece el minimo esperado | Solo usa el tiempo, ignora el tipo de labor |
-| **Reg. Lineal Multiple** | Agrega el grupo de labor como predictor | Asume relaciones lineales que pueden no existir |
-| **Random Forest** | Captura relaciones no lineales y combinaciones complejas | Menos interpretable |
-
-**Por que Random Forest es el modelo principal:**
-El costo de una labor no depende linealmente de un solo factor — depende de la combinacion
-de grupo de labor + mes del ano + cantidad producida. Random Forest captura estas interacciones
-sin asumir una forma funcional especifica, lo que lo hace mas adecuado para datos agricolas.
-        """)
 
     with st.spinner("Entrenando modelos de regresion..."):
         resultados = entrenar_modelos(df)
@@ -860,15 +856,6 @@ sin asumir una forma funcional especifica, lo que lo hace mas adecuado para dato
         st.plotly_chart(fig_imp, use_container_width=True)
 
     st.markdown("### Diagnostico de Residuos — Regresion Multiple")
-    st.markdown("""
-> **Overfitting / Underfitting:**
-> - **Reg. Simple:** R² bajo en train Y test → **Underfitting** — modelo demasiado simple
-> - **Reg. Multiple:** Diferencia tren-test < 0.10 → **Aceptable** — ligero underfitting
-> - **Random Forest:** Diferencia tren-test ~0.10-0.15 → **Bueno** — sin sobreajuste grave
->
-> Un R² de Random Forest ~0.72 significa que el modelo explica el **72% de la variacion en costos**.
-> El 28% restante corresponde a factores no capturados: clima, cambios de proveedor, negociaciones.
-    """)
     residuos = r['y_test_m'] - r['y_pred_m']
     col1, col2 = st.columns(2)
     with col1:
@@ -898,20 +885,6 @@ sin asumir una forma funcional especifica, lo que lo hace mas adecuado para dato
 
 with tab4:
     st.markdown("## 📅 Series Temporales — Pronostico SARIMA 2026")
-
-    with st.expander("📖 Por que SARIMA?", expanded=False):
-        st.markdown("""
-**SARIMA** (Seasonal AutoRegressive Integrated Moving Average) es el modelo estadistico
-estandar para series temporales con estacionalidad. Se eligio porque:
-
-- ✅ El dataset tiene **60 meses** de datos — suficiente para estimar patrones anuales
-- ✅ Hay **estacionalidad clara** (picos en jul-sep y ene-mar detectados en el EDA)
-- ✅ Los parametros `(1,1,1)(1,1,1,12)` capturan: tendencia, diferenciacion y patron anual
-- ✅ Genera **intervalos de confianza** para cuantificar la incertidumbre del pronostico
-
-**Ventaja sobre regresion lineal:** SARIMA captura la estacionalidad anual que la regresion
-lineal ignora, produciendo pronosticos mas precisos para planificacion presupuestaria.
-        """)
 
     serie_mensual = df.groupby(['Año', 'Mes'])['Csts.real.cargo'].sum().reset_index()
     serie_mensual['Fecha'] = pd.to_datetime(
@@ -1048,23 +1021,6 @@ with tab5:
     st.markdown("## 🎯 Clasificacion — Labor Costosa o Normal?")
     st.markdown("**Variable objetivo:** `Labor_Costosa` = 1 si costo > percentil 75, 0 si no.")
 
-    with st.expander("📖 Como interpretar los resultados en lenguaje de negocio", expanded=False):
-        st.markdown("""
-| Metrica | Valor tipico | Que significa para Riopaila |
-|---|---|---|
-| **Accuracy** | ~77% | De 100 labores evaluadas, el modelo acierta en ~77 |
-| **Recall** | ~85% | Detecta el 85% de las labores que REALMENTE seran costosas |
-| **AUC-ROC** | ~0.84 | Discrimina bien entre costosas y normales (1.0 = perfecto) |
-
-> **Por que el Recall es la metrica mas importante aqui:**
-> Es mejor sobre-alertar (falso positivo) que perder una labor costosa (falso negativo).
-> Un recall alto significa que el sistema de alertas tempranas funcionara correctamente.
-
-> **Como usar este modelo en la practica:**
-> Antes de programar una labor, el gerente ingresa: tipo de labor, mes, cantidad estimada y tenencia.
-> Si el modelo devuelve **"Costosa"**, se activa una revision de eficiencia antes de ejecutar.
-        """)
-
     c = resultados['clf']
     umbral = c['umbral']
 
@@ -1128,13 +1084,6 @@ with tab5:
     with subtab_b:
         st.markdown("#### Coeficientes Regresion Logistica")
         st.markdown("Variables que **aumentan** (rojo) o **reducen** (azul) la probabilidad de ser una labor costosa.")
-        st.markdown("""
-> **Como leer este grafico:**
-> - **Barras rojas (coef. positivo):** esa variable AUMENTA la probabilidad de que la labor sea costosa.
->   Ejemplo: si Fertilizacion tiene coeficiente alto, indica que las labores de fertilizacion tienden a ser mas caras.
-> - **Barras azules (coef. negativo):** esa variable REDUCE la probabilidad de costo alto.
-> - **Magnitud:** entre mayor la barra, mas importante es esa variable para la decision del modelo.
-        """)
         coefs = pd.Series(c['rl'].coef_[0], index=c['feat_clf'])
         coefs_top = pd.concat([coefs.nlargest(10), coefs.nsmallest(10)]).drop_duplicates().sort_values()
         coefs_top.index = [i.replace('GRUPO LABORES_', '').replace('Tipo Labor_', '')
@@ -1154,12 +1103,6 @@ with tab5:
 
     with subtab_c:
         st.markdown("#### Importancia de Variables — Arbol de Decision")
-        st.markdown("""
-> **Interpretacion de negocio:**
-> `Cant.producida real` domina con ~82% de importancia — esto confirma que **la cantidad de trabajo
-> realizado es el principal determinante del costo**, no el tipo de labor ni el mes.
-> Esto es valioso para presupuestar: si se conoce la cantidad a producir, se puede estimar el costo con alta precision.
-        """)
         imp_a = pd.DataFrame({
             'Variable':    c['feat_clf'],
             'Importancia': c['arbol'].feature_importances_
@@ -1192,24 +1135,6 @@ with tab5:
 
 with tab6:
     st.markdown("## 🗺️ Clustering K-Means — Segmentacion de Lotes")
-
-    with st.expander("📖 Como interpretar la segmentacion en lenguaje de negocio", expanded=False):
-        st.markdown("""
-El clustering agrupa los **lotes de cana** segun su perfil de costos y produccion,
-sin una etiqueta predefinida — el algoritmo descubre los patrones por si solo.
-
-| Cluster | Nombre | N Lotes | Costo/Unidad | Accion recomendada |
-|---|---|---|---|---|
-| 0 | 🌱 Lotes Estandar | 214 | $49.118 | Mantener operacion actual |
-| 1 | 📈 Alta Produccion | 146 | $53.170 | Escalar buenas practicas |
-| 2 | ⚠️ **Lotes Ineficientes** | **226** | **$145.140** | **Auditoria urgente** |
-| 3 | 🏆 Lotes de Elite | 63 | $28.043 | Modelo a replicar |
-
-> **Hallazgo principal:** Los 226 lotes del Cluster 2 operan con un costo por unidad
-> **5 veces mayor** que los Lotes de Elite. No gastan mas en total, sino que **producen muy poco
-> para lo que cuestan**. Identificar y optimizar estos lotes es la mayor oportunidad de ahorro
-> operativo identificada en este proyecto.
-        """)
 
     if 'clust' not in resultados:
         st.warning("No se encontro columna de sector/suerte en el dataset.")
@@ -1308,27 +1233,6 @@ sin una etiqueta predefinida — el algoritmo descubre los patrones por si solo.
 with tab7:
     st.markdown("## 🧮 Simulador de Gastos por Labor")
     st.markdown("Estima el costo de una labor futura ajustando los parametros operativos.")
-
-    with st.expander("📖 Como usar el simulador", expanded=False):
-        st.markdown("""
-Este simulador usa los modelos entrenados para **estimar el costo de una labor antes de ejecutarla**.
-
-**Pasos:**
-1. Selecciona el **grupo de labor** (Fertilizacion, Riego, Cosecha, etc.)
-2. Elige el **mes** en que se ejecutara la labor
-3. Ingresa el **año proyectado** (2025-2030)
-4. Ajusta la **cantidad a producir** segun lo planificado
-5. Selecciona el **tipo de tenencia** del lote
-
-**Que devuelve:**
-- Estimacion de costo por **Random Forest** (modelo mas preciso, R²~0.72)
-- Estimacion por **Regresion Lineal** (modelo mas simple, referencia)
-- Costo historico promedio para ese grupo y mes
-- **Alerta automatica** si la labor proyectada superara el umbral P75 de costos
-
-**Proyeccion mensual:** Muestra la tendencia de costos para los proximos meses,
-incluyendo un ajuste de inflacion del 5% anual estimado.
-        """)
 
     st.markdown("---")
     col_sim1, col_sim2 = st.columns([1, 1])
@@ -1533,21 +1437,10 @@ incluyendo un ajuste de inflacion del 5% anual estimado.
 
 # ── Footer ────────────────────────────────────────────────────
 st.markdown("---")
-
-with st.expander("⚠️ Limitaciones del modelo", expanded=False):
-    st.markdown("""
-1. **Datos historicos:** Entrenado con 2021-2026. Si cambian las condiciones del mercado, requiere reentrenamiento.
-2. **Variables no capturadas:** No incluye datos climaticos (precipitacion, temperatura) que afectan costos agricolas.
-3. **Tenencia filtrada:** El modelo se enfoca en tierras propias (10/20/30). Las arrendadas requieren un modelo separado.
-4. **SARIMA con 60 meses:** Suficiente pero con mas datos los intervalos de confianza serian mas estrechos.
-5. **Simulador:** Las estimaciones son orientativas. El costo real puede variar por factores no capturados en el dataset.
-    """)
-
 st.markdown("""
 <div style="text-align:center; color:#666; font-size:0.85rem; padding:1rem">
     🌿 <b>Ingenio Riopaila Castilla — Sistema de Analitica de Costos</b><br>
-    Analitica Predictiva Aplicada a los Negocios | INTEP Roldanillo Valle | Abril 2026<br>
-    Cesar Augusto Tirado · Eliana Villanueva · Francisco Jaier Trejos<br>
+    Analitica Predictiva Aplicada a los Negocios | INTEP Roldanillo Valle | 2024<br>
     Desarrollado con Python · Streamlit · scikit-learn · statsmodels · Plotly
 </div>
 """, unsafe_allow_html=True)
