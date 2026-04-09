@@ -319,6 +319,48 @@ with st.sidebar:
         st.metric("Registros", f"{len(df_raw):,}")
         st.metric("Periodo", f"{df_raw['Año'].min()} – {df_raw['Año'].max()}")
         st.metric("Costo total", f"${df_raw['Csts.real.cargo'].sum()/1e12:.2f}B COP")
+
+        st.markdown("---")
+        st.markdown("### 🔴 Top 5 Materiales mas costosos")
+        col_mat_sb = next((c for c in ['Texto breve de material', 'Numero de material']
+                           if c in df_raw.columns), None)
+        if col_mat_sb:
+            top5_sb = (df_raw.groupby(col_mat_sb)['Csts.real.cargo']
+                       .sum().sort_values(ascending=False).head(5).reset_index())
+            top5_sb.columns = ['Material', 'Costo']
+            top5_sb['%'] = (top5_sb['Costo'] / df_raw['Csts.real.cargo'].sum() * 100).round(1)
+            # Truncar nombres largos para que quepan en sidebar
+            top5_sb['Material_corto'] = top5_sb['Material'].str[:22]
+
+            fig_sb = px.bar(
+                top5_sb,
+                x='Costo', y='Material_corto',
+                orientation='h',
+                text=[f"{p:.1f}%" for p in top5_sb['%']],
+                color='Costo',
+                color_continuous_scale='Reds',
+            )
+            fig_sb.update_traces(
+                textposition='inside',
+                textfont=dict(size=10, color='white'),
+                marker_line_width=0
+            )
+            fig_sb.update_layout(
+                height=210,
+                margin=dict(l=0, r=0, t=5, b=0),
+                coloraxis_showscale=False,
+                showlegend=False,
+                xaxis=dict(visible=False),
+                yaxis=dict(
+                    title='',
+                    tickfont=dict(size=9),
+                    autorange='reversed'
+                ),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+            )
+            st.plotly_chart(fig_sb, use_container_width=True,
+                            config={'displayModeBar': False})
     else:
         st.info("👆 Sube el archivo Excel para comenzar")
         st.stop()
