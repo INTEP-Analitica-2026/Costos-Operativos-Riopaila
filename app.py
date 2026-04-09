@@ -855,19 +855,31 @@ with tab2:
         df_pair = df[~df['GRUPO LABORES'].isin(['Sin Clasificar', 'DESCONOCIDO'])].dropna(
             subset=cols_pair).sample(min(3000, len(df)), random_state=42)
 
-        fig_pair = px.scatter_matrix(
+        fig_pair, ax = plt.subplots(figsize=(12, 8))
+        plt.close(fig_pair)
+        g = sns.pairplot(
             df_pair,
-            dimensions=cols_pair,
-            color='GRUPO LABORES',
-            title='Relaciones Multiples: Año, Cantidad Producida y Costo por Grupo de Labor',
-            opacity=0.5,
-            labels={c: c.replace('Csts.real.cargo', 'Costo ($)')
-                        .replace('Cant.producida real', 'Cantidad')
-                    for c in cols_pair}
+            vars=cols_pair,
+            hue='GRUPO LABORES',
+            palette='viridis',
+            diag_kind='kde',
+            plot_kws={'alpha': 0.4, 's': 15}
         )
-        fig_pair.update_traces(marker=dict(size=3))
-        fig_pair.update_layout(height=550)
-        st.plotly_chart(fig_pair, use_container_width=True)
+        g.fig.suptitle(
+            'Relaciones Multiples: Produccion vs Costos',
+            y=1.02, fontsize=13, fontweight='bold'
+        )
+        g.fig.patch.set_facecolor('#0e1117')
+        for ax in g.axes.flatten():
+            ax.set_facecolor('#0e1117')
+            ax.tick_params(colors='white')
+            ax.xaxis.label.set_color('white')
+            ax.yaxis.label.set_color('white')
+            for spine in ax.spines.values():
+                spine.set_edgecolor('#444')
+        plt.tight_layout()
+        st.pyplot(g.fig, use_container_width=True)
+        plt.close('all')
         st.markdown("""
 > **Como leer el pairplot:**
 > Cada celda muestra la relacion entre dos variables. La diagonal muestra la distribucion individual.
