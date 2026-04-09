@@ -383,9 +383,9 @@ with tab1:
         st.markdown("""
 | Integrante | Rol |
 |---|---|
-| **Cesar Augusto Tirado** | Analista de datos / Modelado predictivo |
 | **Eliana Villanueva** | Analista de datos / EDA y visualizacion |
-| **Francisco Jaier Trejos** | Analista de datos / Clustering y series temporales |
+| **Francisco Jaier Trejos** | Analista de datos / Modelado predictivo |
+| **Cesar Augusto Tirado** | Analista de datos / Clustering y series temporales |
 
 **Fecha:** Abril 2026 | **Repositorio:** https://github.com/INTEP-Analitica-2026/Costos-Operativos-Riopaila
         """)
