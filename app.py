@@ -855,9 +855,7 @@ with tab2:
         df_pair = df[~df['GRUPO LABORES'].isin(['Sin Clasificar', 'DESCONOCIDO'])].dropna(
             subset=cols_pair).sample(min(3000, len(df)), random_state=42)
 
-        fig_pair, ax = plt.subplots(figsize=(12, 8))
-        plt.close(fig_pair)
-         g = sns.pairplot(
+        g = sns.pairplot(
             df_pair,
             vars=cols_pair,
             hue='GRUPO LABORES',
@@ -865,22 +863,51 @@ with tab2:
             diag_kind='kde',
             plot_kws={'alpha': 0.4, 's': 15}
         )
-        # Quitar leyenda automatica y reponerla abajo
+        # Quitar leyenda automatica
         if g._legend:
             g._legend.remove()
+
+        # Titulo abajo en blanco
         g.fig.suptitle(
             'Relaciones Multiples: Produccion vs Costos',
-            y=1.02, fontsize=13, fontweight='bold'
+            y=0.01, fontsize=12, fontweight='bold', color='white',
+            verticalalignment='bottom'
         )
-        g.fig.patch.set_facecolor('#0e1117')
+
+        # Fondo oscuro opaco
+        g.fig.patch.set_facecolor('#1b2838')
+        g.fig.patch.set_alpha(0.95)
         for ax in g.axes.flatten():
-            ax.set_facecolor('#0e1117')
+            ax.set_facecolor('#243447')
+            ax.patch.set_alpha(0.85)
             ax.tick_params(colors='white')
             ax.xaxis.label.set_color('white')
             ax.yaxis.label.set_color('white')
             for spine in ax.spines.values():
-                spine.set_edgecolor('#444')
-        plt.tight_layout()
+                spine.set_edgecolor('#4a6fa5')
+                spine.set_linewidth(0.8)
+
+        # Leyenda centrada abajo
+        try:
+            handles = list(g._legend_data.values())
+            labels  = list(g._legend_data.keys())
+            g.fig.legend(
+                handles=handles, labels=labels,
+                title='GRUPO LABORES',
+                loc='lower center',
+                bbox_to_anchor=(0.5, -0.10),
+                ncol=4,
+                frameon=True,
+                facecolor='#1b2838',
+                edgecolor='#4a6fa5',
+                labelcolor='white',
+                title_fontsize=9,
+                fontsize=8
+            )
+        except Exception:
+            pass
+
+        g.fig.subplots_adjust(bottom=0.20, top=0.95)
         st.pyplot(g.fig, use_container_width=True)
         plt.close('all')
         st.markdown("""
@@ -1469,10 +1496,10 @@ with tab7:
         )
 
         tenencia_sim = st.radio(
-            "Tipo de tenencia", ['Propia (10)', 'Alquilada (20)', 'Participacion (30)'],
+            "Tipo de tenencia", ['Propia Baja (10)', 'Propia Media (20)', 'Propia Alta (30)'],
             horizontal=True
         )
-        ten_map = {'Propia (10)': 10, 'Alquilada (20)': 20, 'Participacion (30)': 30}
+        ten_map = {'Propia Baja (10)': 10, 'Propia Media (20)': 20, 'Propia Alta (30)': 30}
         ten_val = ten_map[tenencia_sim]
 
         n_labores_sim = st.slider("Numero de labores estimadas en el mes", 1, 200, 50)
