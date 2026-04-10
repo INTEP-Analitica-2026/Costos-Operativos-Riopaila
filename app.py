@@ -478,14 +478,18 @@ with tab1:
     with h1:
         st.markdown(f"""<div class="alert-box">
             <b>🌱 Fertilizacion domina</b><br>
-            ${costo_fert/1e9:.0f}B en 5 anos = {costo_fert/costo_total*100:.0f}% del presupuesto.
+            {fmt_b(costo_fert)} en {df['Año'].nunique()} anos = {costo_fert/costo_total*100:.0f}% del presupuesto.
             ABONO APORQUE es el mayor gasto individual.
         </div>""", unsafe_allow_html=True)
     with h2:
         var = (costo_max - costo_2021)/costo_2021*100 if costo_2021 > 0 else 0
+        def fmt_b(val):
+            if val >= 1e12: return f"${val/1e12:.1f} Bill"
+            elif val >= 1e9: return f"${val/1e9:.1f}B"
+            else: return f"${val/1e6:.0f}M"
         st.markdown(f"""<div class="alert-box">
             <b>📈 Costos crecieron {var:.0f}%</b><br>
-            Desde {df['Año'].min()} (${costo_2021/1e9:.1f}B) hasta {year_max} (${costo_max/1e9:.1f}B).
+            Desde {df['Año'].min()} ({fmt_b(costo_2021)}) hasta {year_max} ({fmt_b(costo_max)}).
             Coincide con inflacion post-pandemia en insumos.
         </div>""", unsafe_allow_html=True)
     with h3:
@@ -607,11 +611,24 @@ with tab2:
             fig2.update_layout(title='Costo Unitario por Año', height=380)
             st.plotly_chart(fig2, use_container_width=True)
 
-        st.markdown("""
-> **Interpretacion de negocio — 2.2:** Los costos crecieron **70% entre 2021 ($38.8B) y 2023 ($65.5B)**,
-> coincidiendo con la inflacion post-pandemia en insumos agricolas. En 2025 bajaron a $60.9B —
-> señal de recuperacion de eficiencia. El costo unitario confirma que no es solo un efecto
-> de volumen sino de precio real de los insumos agricolas.
+        anual_min_yr  = int(anual['Año'].min())
+        anual_max_yr  = int(anual['Año'].max())
+        costo_min_yr  = float(anual[anual['Año']==anual_min_yr]['Costo_Total'].values[0])
+        costo_max_yr  = float(anual['Costo_Total'].max())
+        yr_max_costo  = int(anual.loc[anual['Costo_Total'].idxmax(), 'Año'])
+        costo_last_yr = float(anual[anual['Año']==anual_max_yr]['Costo_Total'].values[0])
+        var_pct       = (costo_max_yr - costo_min_yr) / costo_min_yr * 100 if costo_min_yr > 0 else 0
+
+        def fmt_b(v):
+            if v >= 1e12: return f"${v/1e12:.1f} Bill"
+            elif v >= 1e9: return f"${v/1e9:.1f}B"
+            else: return f"${v/1e6:.0f}M"
+
+        st.markdown(f"""
+> **Interpretacion de negocio — 2.2:** Los costos crecieron **{var_pct:.0f}% entre {anual_min_yr} ({fmt_b(costo_min_yr)}) y {yr_max_costo} ({fmt_b(costo_max_yr)})**,
+> coincidiendo con la inflacion post-pandemia en insumos agricolas. En {anual_max_yr} {'bajaron' if costo_last_yr < costo_max_yr else 'se mantuvieron'} a {fmt_b(costo_last_yr)} —
+> señal de {'recuperacion de eficiencia' if costo_last_yr < costo_max_yr else 'estabilizacion'}.
+> El costo unitario confirma que no es solo un efecto de volumen sino de precio real de los insumos.
         """)
 
         st.markdown("### 2.3 Costos Promedio por Año y Grupo")
@@ -1130,11 +1147,21 @@ lineal ignora, produciendo pronosticos mas precisos para planificacion presupues
                 st.dataframe(tabla_pron, use_container_width=True, hide_index=True)
 
                 total_pron = fm.sum()
+                # Verificar si IC es estable (no mayor a 1000x el pronostico)
+                ic_low_sum  = fc.iloc[:,0].sum()
+                ic_high_sum = fc.iloc[:,1].sum()
+                ic_estable  = abs(ic_low_sum) < abs(total_pron) * 1000
+
+                if ic_estable:
+                    ic_txt = f"(IC: ${ic_low_sum/1e9:.1f}B – ${ic_high_sum/1e9:.1f}B)"
+                else:
+                    ic_txt = "(IC no disponible — modelo inestable, ajusta los parametros)"
+
                 st.markdown(f"""<div class="success-box">
                     <b>✅ Pronostico completado.</b>
                     Total estimado para los proximos {pasos} meses:
-                    <b>${total_pron/1e9:.1f}B</b>
-                    (IC: ${fc.iloc[:,0].sum()/1e9:.1f}B – ${fc.iloc[:,1].sum()/1e9:.1f}B)
+                    <b>${total_pron/1e9:.1f}B</b><br>
+                    {ic_txt}
                 </div>""", unsafe_allow_html=True)
 
             except Exception as e:
