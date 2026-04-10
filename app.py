@@ -318,7 +318,11 @@ with st.sidebar:
         st.markdown("### ℹ️ Dataset cargado")
         st.metric("Registros", f"{len(df_raw):,}")
         st.metric("Periodo", f"{df_raw['Año'].min()} – {df_raw['Año'].max()}")
-        st.metric("Costo total", f"${df_raw['Csts.real.cargo'].sum()/1e12:.2f}B COP")
+        costo_total_raw = df_raw['Csts.real.cargo'].sum()
+        if costo_total_raw >= 1e12:
+            st.metric("Costo total", f"${costo_total_raw/1e12:.2f} Billones COP")
+        else:
+            st.metric("Costo total", f"${costo_total_raw/1e9:.0f} Mil Millones COP")
 
         st.markdown("---")
         st.markdown("### 💰 Top 3 Materiales")
@@ -416,8 +420,10 @@ with tab1:
         st.markdown(f"""<div class="metric-card">
             <h3>{len(df):,}</h3><p>Registros SAP</p></div>""", unsafe_allow_html=True)
     with col2:
+        costo_label = (f"${costo_total/1e12:.2f}B" if costo_total >= 1e12
+                       else f"${costo_total/1e9:.0f}MM")
         st.markdown(f"""<div class="metric-card">
-            <h3>${costo_total/1e12:.2f}B</h3><p>Costo Total COP</p></div>""", unsafe_allow_html=True)
+            <h3>{costo_label}</h3><p>Costo Total COP</p></div>""", unsafe_allow_html=True)
     with col3:
         st.markdown(f"""<div class="metric-card">
             <h3>${df['Csts.real.cargo'].mean():,.0f}</h3><p>Costo Promedio/Labor</p></div>""", unsafe_allow_html=True)
@@ -1026,8 +1032,12 @@ lineal ignora, produciendo pronosticos mas precisos para planificacion presupues
     col1, col2, col3, col4 = st.columns(4)
     with col1: p = st.slider("p (AR)",  0, 3, 1)
     with col2: d = st.slider("d (I)",   0, 2, 1)
-    with col3: q = st.slider("q (MA)",  0, 3, 1)
+    with col3: q = st.slider("q (MA)",  0, 3, 0)
     with col4: pasos = st.slider("Meses a pronosticar", 3, 18, 6)
+    st.markdown("""
+> 💡 **Parametros recomendados:** p=1, d=1, q=0 con estacionalidad (0,1,1,12).
+> Si el MAPE es mayor al 100%, prueba reducir q a 0 o d a 1.
+    """)
 
     if st.button("🚀 Ejecutar SARIMA", type="primary"):
         with st.spinner("Entrenando SARIMA... esto puede tomar unos segundos"):
@@ -1062,8 +1072,15 @@ lineal ignora, produciendo pronosticos mas precisos para planificacion presupues
 
                 col1, col2, col3 = st.columns(3)
                 with col1: st.metric("AIC del modelo", f"{result_sarima.aic:.0f}")
-                with col2: st.metric("MAE validacion", f"${mae_ts:,.0f}")
+                with col2: st.metric("MAE validacion", f"${mae_ts/1e6:.1f}M")
                 with col3: st.metric("MAPE validacion", f"{mape_ts:.1f}%")
+                if mape_ts > 200:
+                    st.markdown("""<div class="alert-box">
+                        ⚠️ <b>MAPE muy alto — modelo inestable.</b>
+                        Prueba cambiar los parametros: recomendamos <b>p=1, d=1, q=0</b>.
+                        Un MAPE alto indica que los datos tienen mucha variabilidad
+                        o que el modelo no convergio correctamente.
+                    </div>""", unsafe_allow_html=True)
 
                 # Grafico pronostico
                 fig_sar = go.Figure()
@@ -1094,20 +1111,23 @@ lineal ignora, produciendo pronosticos mas precisos para planificacion presupues
                 st.markdown("### 📋 Tabla de Pronostico")
                 meses_n = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
                            'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+                # Limitar IC — si son absurdamente grandes mostrar N/D
+                ic_inf = fc.iloc[:, 0].values
+                ic_sup = fc.iloc[:, 1].values
+                umbral_ic = fm.values.mean() * 1000  # si IC > 1000x el pronostico es invalido
+
+                def fmt_ic(val, ref):
+                    if abs(val) > abs(ref) * 1000:
+                        return "N/D (modelo inestable)"
+                    return f"${val:,.0f}"
+
                 tabla_pron = pd.DataFrame({
                     'Mes': [f"{meses_n[f.month-1]} {f.year}" for f in fm.index],
-                    'Pronostico ($)': fm.values,
-                    'IC Inferior ($)': fc.iloc[:, 0].values,
-                    'IC Superior ($)': fc.iloc[:, 1].values
+                    'Pronostico ($)': [f"${v:,.0f}" for v in fm.values],
+                    'IC Inferior ($)': [fmt_ic(v, fm.values[i]) for i, v in enumerate(ic_inf)],
+                    'IC Superior ($)': [fmt_ic(v, fm.values[i]) for i, v in enumerate(ic_sup)],
                 })
-                st.dataframe(
-                    tabla_pron.style.format({
-                        'Pronostico ($)': '${:,.0f}',
-                        'IC Inferior ($)': '${:,.0f}',
-                        'IC Superior ($)': '${:,.0f}'
-                    }),
-                    use_container_width=True, hide_index=True
-                )
+                st.dataframe(tabla_pron, use_container_width=True, hide_index=True)
 
                 total_pron = fm.sum()
                 st.markdown(f"""<div class="success-box">
