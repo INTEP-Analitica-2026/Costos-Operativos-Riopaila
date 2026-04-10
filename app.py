@@ -470,6 +470,12 @@ with tab1:
 
     # Hallazgos clave
     st.markdown("### 🔑 Hallazgos Clave del Dataset")
+
+    # Funcion auxiliar de formato — disponible para todo Tab1 y Tab2
+    def fmt_b(val):
+        if val >= 1e12: return f"${val/1e12:.1f} Bill"
+        elif val >= 1e9: return f"${val/1e9:.1f}B"
+        else: return f"${val/1e6:.0f}M"
     costo_2021 = df[df['Año'] == df['Año'].min()]['Csts.real.cargo'].sum()
     costo_max  = df.groupby('Año')['Csts.real.cargo'].sum().max()
     year_max   = df.groupby('Año')['Csts.real.cargo'].sum().idxmax()
@@ -483,10 +489,6 @@ with tab1:
         </div>""", unsafe_allow_html=True)
     with h2:
         var = (costo_max - costo_2021)/costo_2021*100 if costo_2021 > 0 else 0
-        def fmt_b(val):
-            if val >= 1e12: return f"${val/1e12:.1f} Bill"
-            elif val >= 1e9: return f"${val/1e9:.1f}B"
-            else: return f"${val/1e6:.0f}M"
         st.markdown(f"""<div class="alert-box">
             <b>📈 Costos crecieron {var:.0f}%</b><br>
             Desde {df['Año'].min()} ({fmt_b(costo_2021)}) hasta {year_max} ({fmt_b(costo_max)}).
@@ -618,11 +620,6 @@ with tab2:
         yr_max_costo  = int(anual.loc[anual['Costo_Total'].idxmax(), 'Año'])
         costo_last_yr = float(anual[anual['Año']==anual_max_yr]['Costo_Total'].values[0])
         var_pct       = (costo_max_yr - costo_min_yr) / costo_min_yr * 100 if costo_min_yr > 0 else 0
-
-        def fmt_b(v):
-            if v >= 1e12: return f"${v/1e12:.1f} Bill"
-            elif v >= 1e9: return f"${v/1e9:.1f}B"
-            else: return f"${v/1e6:.0f}M"
 
         st.markdown(f"""
 > **Interpretacion de negocio — 2.2:** Los costos crecieron **{var_pct:.0f}% entre {anual_min_yr} ({fmt_b(costo_min_yr)}) y {yr_max_costo} ({fmt_b(costo_max_yr)})**,
