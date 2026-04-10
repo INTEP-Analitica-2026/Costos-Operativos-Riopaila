@@ -660,17 +660,27 @@ with tab2:
         mensual['Color'] = mensual['Costo_Prom'].apply(
             lambda x: 'Sobre mediana' if x > mediana_m else 'Bajo mediana')
 
-        fig = px.bar(
-            mensual, x='Mes_Nombre', y='Costo_Prom',
-            color='Color',
-            color_discrete_map={'Sobre mediana': '#e74c3c', 'Bajo mediana': '#3498db'},
-            title='Costo Mensual Promedio — Patron Estacional',
-            labels={'Costo_Prom': 'Costo Mensual Promedio ($)', 'Mes_Nombre': 'Mes'},
-            text=[f'${v/1e9:.1f}B' for v in mensual['Costo_Prom']]
-        )
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=mensual['Mes_Nombre'],
+            y=mensual['Costo_Prom'],
+            marker_color=['#e74c3c' if x > mediana_m else '#3498db'
+                          for x in mensual['Costo_Prom']],
+            text=[f'${v/1e9:.1f}B' for v in mensual['Costo_Prom']],
+            textposition='outside',
+            name='Costo Mensual'
+        ))
         fig.add_hline(y=mediana_m, line_dash='dash', line_color='gray',
                       annotation_text='Mediana')
-        fig.update_layout(height=450)
+        fig.update_layout(
+            title='Costo Mensual Promedio — Patron Estacional',
+            xaxis_title='Mes',
+            yaxis_title='Costo Mensual Promedio ($)',
+            height=450,
+            showlegend=False,
+            xaxis=dict(categoryorder='array',
+                       categoryarray=meses_n)
+        )
         st.plotly_chart(fig, use_container_width=True)
         st.markdown("""
 > **Interpretacion de negocio — 2.4:** Hay un patron claro — **julio-septiembre** son los meses mas
