@@ -640,10 +640,13 @@ with tab2:
         )
         fig3.update_layout(height=420, coloraxis_showscale=False, xaxis_tickangle=-45)
         st.plotly_chart(fig3, use_container_width=True)
-        st.markdown("""
-> **Interpretacion de negocio — 2.3:** Cada ano muestra la misma jerarquia: Fertilizacion siempre
-> lidera el costo promedio. Esto confirma que la estructura de costos es **estable y predecible**,
-> lo que facilita el modelado. El grupo de labor es el predictor mas importante del costo.
+        st.markdown(f"""
+> **Interpretacion de negocio — 2.3:** En {year_sel}, **Siembra** lidera el costo promedio por labor,
+> seguida de Adecuacion y Fertilizacion. Este patron se repite en todos los anos analizados,
+> lo que confirma que la estructura de costos es **estable y predecible**.
+> Las labores de preparacion y establecimiento del cultivo (Siembra, Adecuacion) son las mas costosas
+> por labor individual, mientras que Fertilizacion domina en **costo total acumulado** por su alta frecuencia.
+> El grupo de labor es el predictor mas importante del modelo.
         """)
 
     with subtab3:
