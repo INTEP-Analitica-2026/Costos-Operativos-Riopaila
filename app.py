@@ -387,9 +387,9 @@ with tab1:
         st.markdown("""
 | Integrante | Rol |
 |---|---|
-| **Cesar Augusto Tirado** | Analista de datos / Modelado predictivo |
-| **Eliana Villanueva** | Analista de datos / EDA y visualizacion |
-| **Francisco Jaier Trejos** | Analista de datos / Clustering y series temporales |
+| **Cesar Augusto Tirado** | Analista de datos / |
+| **Eliana Villanueva** | Analista de datos /  |
+| **Francisco Jaier Trejos** | Analista de datos / |
 
 **Fecha:** Abril 2026 | **Repositorio:** https://github.com/INTEP-Analitica-2026/Costos-Operativos-Riopaila
         """)
@@ -654,6 +654,7 @@ with tab2:
         meses_n = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
                    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
         mensual = df.groupby('Mes')['Csts.real.cargo'].sum().reset_index()
+        mensual = mensual.sort_values('Mes').reset_index(drop=True)
         mensual['Costo_Prom'] = mensual['Csts.real.cargo'] / df['Año'].nunique()
         mensual['Mes_Nombre'] = mensual['Mes'].apply(lambda x: meses_n[x-1] if 1 <= x <= 12 else str(x))
         mediana_m = mensual['Costo_Prom'].median()
@@ -836,74 +837,7 @@ with tab2:
 > - Variables con correlacion ~0 con el costo no tienen poder predictivo lineal sobre el modelo.
         """)
 
-        st.markdown("---")
-        st.markdown("### 2.9b Pairplot — Relaciones entre Variables Clave")
 
-        cols_pair = [c for c in ['Año', 'Cant.producida real', 'Csts.real.cargo'] if c in df.columns]
-        df_pair = df[~df['GRUPO LABORES'].isin(['Sin Clasificar', 'DESCONOCIDO'])].dropna(
-            subset=cols_pair).sample(min(3000, len(df)), random_state=42)
-
-        g = sns.pairplot(
-            df_pair,
-            vars=cols_pair,
-            hue='GRUPO LABORES',
-            palette='viridis',
-            diag_kind='kde',
-            plot_kws={'alpha': 0.4, 's': 15}
-        )
-        # Quitar leyenda automatica
-        if g._legend:
-            g._legend.remove()
-
-        # Titulo abajo en blanco
-        g.fig.suptitle(
-            'Relaciones Multiples: Produccion vs Costos',
-            y=0.01, fontsize=12, fontweight='bold', color='white',
-            verticalalignment='bottom'
-        )
-
-        # Fondo oscuro opaco
-        g.fig.patch.set_facecolor('#1b2838')
-        g.fig.patch.set_alpha(0.95)
-        for ax in g.axes.flatten():
-            ax.set_facecolor('#243447')
-            ax.patch.set_alpha(0.85)
-            ax.tick_params(colors='white')
-            ax.xaxis.label.set_color('white')
-            ax.yaxis.label.set_color('white')
-            for spine in ax.spines.values():
-                spine.set_edgecolor('#4a6fa5')
-                spine.set_linewidth(0.8)
-
-        # Leyenda centrada abajo
-        try:
-            handles = list(g._legend_data.values())
-            labels  = list(g._legend_data.keys())
-            g.fig.legend(
-                handles=handles, labels=labels,
-                title='GRUPO LABORES',
-                loc='lower center',
-                bbox_to_anchor=(0.5, -0.10),
-                ncol=4,
-                frameon=True,
-                facecolor='#1b2838',
-                edgecolor='#4a6fa5',
-                labelcolor='white',
-                title_fontsize=9,
-                fontsize=8
-            )
-        except Exception:
-            pass
-
-        g.fig.subplots_adjust(bottom=0.20, top=0.95)
-        st.pyplot(g.fig, use_container_width=True)
-        plt.close('all')
-        st.markdown("""
-> **Como leer el pairplot:**
-> Cada celda muestra la relacion entre dos variables. La diagonal muestra la distribucion individual.
-> Las nubes de puntos separadas por color muestran que cada grupo de labor tiene un **perfil de costo distinto**,
-> lo que confirma que `GRUPO LABORES` es un predictor esencial del modelo.
-        """)
 
 
 # ══════════════════════════════════════════════════════════════
