@@ -660,53 +660,54 @@ with tab2:
         mensual['Color'] = mensual['Costo_Prom'].apply(
             lambda x: 'Sobre mediana' if x > mediana_m else 'Bajo mediana')
 
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            x=mensual['Mes_Nombre'],
-            y=mensual['Costo_Prom'],
-            marker_color=['#e74c3c' if x > mediana_m else '#3498db'
-                          for x in mensual['Costo_Prom']],
-            text=[f'${v/1e9:.1f}B' for v in mensual['Costo_Prom']],
-            textposition='outside',
-            name='Costo Mensual'
-        ))
+        fig = px.bar(
+            mensual, x='Mes_Nombre', y='Costo_Prom',
+            color='Color',
+            color_discrete_map={'Sobre mediana': '#e74c3c', 'Bajo mediana': '#3498db'},
+            title='Costo Mensual Promedio — Patron Estacional',
+            labels={'Costo_Prom': 'Costo Mensual Promedio ($)', 'Mes_Nombre': 'Mes'},
+            text=[f'${v/1e9:.1f}B' for v in mensual['Costo_Prom']]
+        )
         fig.add_hline(y=mediana_m, line_dash='dash', line_color='gray',
                       annotation_text='Mediana')
-        fig.update_layout(
-            title='Costo Mensual Promedio — Patron Estacional',
-            xaxis_title='Mes', yaxis_title='Costo Mensual Promedio ($)',
-            height=450, showlegend=False,
-            xaxis=dict(categoryorder='array', categoryarray=meses_n)
-        )
+        fig.update_layout(height=450)
         st.plotly_chart(fig, use_container_width=True)
         st.markdown("""
-> **Interpretacion de negocio — 2.4:** El patron estacional muestra picos claros en
-> **Febrero** (el mes mas costoso), **Julio** y **Diciembre**. Los meses mas economicos
-> son Mayo, Junio y Noviembre. Este patron anual se repite consistentemente en todos los
-> anos analizados, lo que justifica el uso de **SARIMA con m=12** para el pronostico.
-> Para la planificacion presupuestaria: el area financiera debe reservar mayor presupuesto
-> para Febrero y el segundo semestre del ano.
+> **Interpretacion de negocio — 2.4:** Hay un patron claro — **julio-septiembre** son los meses mas
+> costosos (preparacion de tierras para siembra) y **enero-marzo** tambien son altos (fertilizacion
+> pre-cosecha). Este patron justifica el uso de **SARIMA con m=12** y es clave para la planificacion
+> presupuestaria: el area financiera debe reservar mayor presupuesto para el tercer trimestre.
         """)
 
-        st.markdown("### 2.5 Scatter: Cantidad vs Costo")
-        year_sc = st.selectbox("Año para scatter", sorted(df['Año'].unique()), key='sc_year')
-        df_sc = df[(df['Año'] == year_sc) &
-                   ~df['GRUPO LABORES'].isin(['Sin Clasificar', 'DESCONOCIDO'])].dropna(
-            subset=['Cant.producida real', 'Csts.real.cargo'])
-        fig_sc = px.scatter(
-            df_sc.sample(min(5000, len(df_sc)), random_state=42),
-            x='Cant.producida real', y='Csts.real.cargo',
-            color='GRUPO LABORES', opacity=0.6,
-            title=f'Relacion Cantidad vs Costo — {year_sc}',
-            labels={'Csts.real.cargo': 'Costo ($)', 'Cant.producida real': 'Cantidad Producida'}
+        st.markdown("### 2.5 Frecuencia de Labores Registradas")
+
+        df_freq = df[~df['GRUPO LABORES'].isin(['Sin Clasificar', 'DESCONOCIDO'])].copy()
+        freq_data = (df_freq['GRUPO LABORES'].value_counts().reset_index())
+        freq_data.columns = ['GRUPO LABORES', 'Frecuencia']
+
+        fig_freq = px.bar(
+            freq_data,
+            x='Frecuencia', y='GRUPO LABORES',
+            orientation='h',
+            color='Frecuencia',
+            color_continuous_scale='Viridis',
+            title=f'Frecuencia de Labores Registradas ({df["Año"].min()}-{df["Año"].max()})',
+            labels={'Frecuencia': 'Numero de Registros', 'GRUPO LABORES': 'Grupo de Labor'},
+            text=[f'{v:,}' for v in freq_data['Frecuencia']]
         )
-        fig_sc.update_layout(height=450)
-        st.plotly_chart(fig_sc, use_container_width=True)
+        fig_freq.update_traces(textposition='outside')
+        fig_freq.update_layout(
+            height=500,
+            coloraxis_showscale=False,
+            yaxis=dict(categoryorder='total ascending')
+        )
+        st.plotly_chart(fig_freq, use_container_width=True)
         st.markdown("""
-> **Interpretacion de negocio — 2.5:** Existe una relacion positiva entre cantidad producida y costo.
-> Los puntos **arriba-izquierda** (costo alto, cantidad baja) son **labores anomalas** con costo
-> desproporcionado — candidatas a investigacion de ineficiencia. La nube se desplaza hacia
-> arriba en anos recientes, confirmando la inflacion de costos operativos detectada en el EDA.
+> **Interpretacion de negocio — 2.5:** **Control de malezas** es la labor mas frecuente del ingenio,
+> seguida de Complementarias y Drenaje. Fertilizacion, aunque no es la mas frecuente,
+> es la que mas costo total acumula por el alto precio unitario de sus insumos.
+> Esta distincion es clave: frecuencia alta no significa necesariamente alto costo total,
+> pero si indica alta demanda operativa de recursos humanos y maquinaria.
         """)
 
     with subtab4:
@@ -820,7 +821,74 @@ with tab2:
 > - Variables con correlacion ~0 con el costo no tienen poder predictivo lineal sobre el modelo.
         """)
 
+        st.markdown("---")
+        st.markdown("### 2.9b Pairplot — Relaciones entre Variables Clave")
 
+        cols_pair = [c for c in ['Año', 'Cant.producida real', 'Csts.real.cargo'] if c in df.columns]
+        df_pair = df[~df['GRUPO LABORES'].isin(['Sin Clasificar', 'DESCONOCIDO'])].dropna(
+            subset=cols_pair).sample(min(3000, len(df)), random_state=42)
+
+        g = sns.pairplot(
+            df_pair,
+            vars=cols_pair,
+            hue='GRUPO LABORES',
+            palette='viridis',
+            diag_kind='kde',
+            plot_kws={'alpha': 0.4, 's': 15}
+        )
+        # Quitar leyenda automatica
+        if g._legend:
+            g._legend.remove()
+
+        # Titulo abajo en blanco
+        g.fig.suptitle(
+            'Relaciones Multiples: Produccion vs Costos',
+            y=0.01, fontsize=12, fontweight='bold', color='white',
+            verticalalignment='bottom'
+        )
+
+        # Fondo oscuro opaco
+        g.fig.patch.set_facecolor('#1b2838')
+        g.fig.patch.set_alpha(0.95)
+        for ax in g.axes.flatten():
+            ax.set_facecolor('#243447')
+            ax.patch.set_alpha(0.85)
+            ax.tick_params(colors='white')
+            ax.xaxis.label.set_color('white')
+            ax.yaxis.label.set_color('white')
+            for spine in ax.spines.values():
+                spine.set_edgecolor('#4a6fa5')
+                spine.set_linewidth(0.8)
+
+        # Leyenda centrada abajo
+        try:
+            handles = list(g._legend_data.values())
+            labels  = list(g._legend_data.keys())
+            g.fig.legend(
+                handles=handles, labels=labels,
+                title='GRUPO LABORES',
+                loc='lower center',
+                bbox_to_anchor=(0.5, -0.10),
+                ncol=4,
+                frameon=True,
+                facecolor='#1b2838',
+                edgecolor='#4a6fa5',
+                labelcolor='white',
+                title_fontsize=9,
+                fontsize=8
+            )
+        except Exception:
+            pass
+
+        g.fig.subplots_adjust(bottom=0.20, top=0.95)
+        st.pyplot(g.fig, use_container_width=True)
+        plt.close('all')
+        st.markdown("""
+> **Como leer el pairplot:**
+> Cada celda muestra la relacion entre dos variables. La diagonal muestra la distribucion individual.
+> Las nubes de puntos separadas por color muestran que cada grupo de labor tiene un **perfil de costo distinto**,
+> lo que confirma que `GRUPO LABORES` es un predictor esencial del modelo.
+        """)
 
 
 # ══════════════════════════════════════════════════════════════
