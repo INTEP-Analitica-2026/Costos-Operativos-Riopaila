@@ -683,10 +683,15 @@ with tab2:
         )
         st.plotly_chart(fig, use_container_width=True)
         st.markdown("""
-> **Interpretacion de negocio — 2.4:** Hay un patron claro — **julio-septiembre** son los meses mas
-> costosos (preparacion de tierras para siembra) y **enero-marzo** tambien son altos (fertilizacion
-> pre-cosecha). Este patron justifica el uso de **SARIMA con m=12** y es clave para la planificacion
-> presupuestaria: el area financiera debe reservar mayor presupuesto para el tercer trimestre.
+> **Interpretacion de negocio — 2.4:** El patron estacional muestra dos picos
+> de costo claramente definidos: **Febrero** es el mes mas costoso del año,
+> seguido de **Julio y Diciembre**. Los meses mas economicos son Mayo, Junio
+> y Noviembre. Este patron no es el tipico julio-septiembre — en Riopaila
+> el primer trimestre (especialmente Febrero) tiene alta actividad de
+> fertilizacion y preparacion. Esto es clave para la planificacion
+> presupuestaria: el area financiera debe reservar mayor presupuesto para
+> Febrero y el segundo semestre. El patron anual justifica el uso de
+> **SARIMA con m=12** para el pronostico.
         """)
 
         st.markdown("### 2.5 Scatter: Cantidad vs Costo")
