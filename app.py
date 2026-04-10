@@ -117,7 +117,7 @@ def cargar_y_limpiar(archivo):
     df.drop(columns=[c for c in cols_drop if c in df.columns], inplace=True)
 
     # Labels tenencia
-    ten_labels = {10: 'Propia Baja', 20: 'Propia Media', 30: 'Propia Alta'}
+    ten_labels = {10: 'Propia', 20: 'Alquilada', 30: 'Participacion'}
     df['Tenencia_Label'] = df['Tenencia'].map(ten_labels).fillna('Otra')
 
     return df
