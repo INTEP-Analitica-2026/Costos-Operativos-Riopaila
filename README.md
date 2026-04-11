@@ -33,11 +33,12 @@ Se implementaron algoritmos de Machine Learning enfocados en clasificación, reg
 •	SARIMA: Modelo de series de tiempo aplicado para proyectar la evolución estacional y anual de los costos hasta 2026.
 
 ## 4. Tecnologías Usadas
-   
+
 El proyecto se fundamenta en las siguientes tecnologías y disciplinas:
-•	Arquitectura de Big Data: Para la limpieza, estructuración y procesamiento de un dataset masivo (más de 117.000 a 177.000 registros).
-•	Machine Learning / Analítica Predictiva: Para el entrenamiento y evaluación de los modelos algorítmicos.
-•	Análisis Exploratorio de Datos (EDA): Técnicas estadísticas para detectar outliers extremos, patrones de estacionalidad mensual y correlaciones de variables.
+•	Arquitectura de Big Data: Para la limpieza, estructuración y procesamiento de un dataset masivo (entre 117.000 y 177.000 registros históricos).
+•	Machine Learning / Analítica Predictiva: Para el entrenamiento y evaluación de los modelos algorítmicos orientados a la clasificación, regresión y segmentación.
+•	Análisis Exploratorio de Datos (EDA): Aplicación de técnicas estadísticas para detectar outliers extremos, descubrir patrones de estacionalidad mensual y evaluar correlaciones entre variables operativas y financieras.
+•	Streamlit (Despliegue en streamlit.app): Implementada como la plataforma para el despliegue de la interfaz de usuario (Frontend). Esta tecnología permitió transformar los modelos analíticos y scripts de Python en una aplicación web interactiva. Gracias a esto, los gerentes y tomadores de decisiones del Ingenio pueden visualizar la segmentación de lotes, explorar las proyecciones estacionales y simular escenarios de presupuestación en tiempo real de forma intuitiva, sin necesidad de tener conocimientos técnicos de programación.
 
 ## 5. Resultado Principal y Métricas Clave
 
