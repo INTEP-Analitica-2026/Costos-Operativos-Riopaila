@@ -2,7 +2,9 @@
 
 Proyecto de Analítica Predictiva Aplicada a los Negocios
 INTEP Roldanillo Valle | Postgrado Especialización en Big Data y Analítica de Datos  | 2026
-
+Repositorio GitHub: https://github.com/INTEP-Analitica-2026/Costos-Operativos-Riopaila
+App en streamlit: https://costos-operativos-riopailagit-9mntaqgnkrh5v7qwair8pc.streamlit.app/
+** Nota: Para el app deben cargar el dataset EXCEL 
 ## Equipo
 - Cesar Augusto Tirado.
 - Eliana Villanueva.
