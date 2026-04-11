@@ -1221,29 +1221,67 @@ with tab5:
 
     with subtab_b:
         st.markdown("#### Coeficientes Regresion Logistica")
-        st.markdown("Variables que **aumentan** (rojo) o **reducen** (azul) la probabilidad de ser una labor costosa.")
-        st.markdown("""
+
+        # ── Tarjetas de metricas reales en los espacios laterales ──
+        col_izq, col_centro, col_der = st.columns([1, 2, 1])
+
+        with col_izq:
+            acc_rl  = round(accuracy_score(c['y_test'], c['y_pred_rl']), 4)
+            auc_rl  = round(roc_auc_score(c['y_test'], c['y_proba_rl']), 4)
+            st.markdown(f"""
+<div style="background:#1b4332;border-radius:10px;padding:1rem;text-align:center;
+            border:1px solid #52b788;margin-bottom:0.5rem">
+    <div style="color:#b7e4c7;font-size:0.75rem;font-weight:600">📊 METRICAS GLOBALES</div>
+    <div style="color:#74c69d;font-size:0.7rem;margin-top:0.5rem">Regresion Logistica</div>
+    <hr style="border-color:#2d6a4f;margin:0.5rem 0">
+    <div style="color:#ffffff;font-size:1.3rem;font-weight:700">{acc_rl:.1%}</div>
+    <div style="color:#b7e4c7;font-size:0.7rem">Accuracy</div>
+    <div style="color:#ffffff;font-size:1.3rem;font-weight:700;margin-top:0.5rem">{auc_rl:.4f}</div>
+    <div style="color:#b7e4c7;font-size:0.7rem">AUC-ROC</div>
+</div>""", unsafe_allow_html=True)
+
+        with col_centro:
+            st.markdown("Variables que **aumentan** (rojo) o **reducen** (azul) la probabilidad de ser una labor costosa.")
+            st.markdown("""
 > **Como leer este grafico:**
 > - **Barras rojas (coef. positivo):** esa variable AUMENTA la probabilidad de que la labor sea costosa.
 > - **Barras azules (coef. negativo):** esa variable REDUCE la probabilidad de costo alto.
 > - **Magnitud:** entre mayor la barra, mas importante es esa variable para la decision del modelo.
-        """)
-        coefs = pd.Series(c['rl'].coef_[0], index=c['feat_clf'])
-        coefs_top = pd.concat([coefs.nlargest(10), coefs.nsmallest(10)]).drop_duplicates().sort_values()
-        coefs_top.index = [i.replace('GRUPO LABORES_', '').replace('Tipo Labor_', '')
-                           for i in coefs_top.index]
-        colores_c = ['#e74c3c' if v > 0 else '#3498db' for v in coefs_top.values]
-        fig_coef = go.Figure(go.Bar(
-            x=coefs_top.values, y=coefs_top.index,
-            orientation='h', marker_color=colores_c,
-            marker_line_color='black', marker_line_width=0.5
-        ))
-        fig_coef.add_vline(x=0, line_dash='dash', line_color='black')
-        fig_coef.update_layout(
-            title='Coeficientes Logisticos — Variables que Aumentan o Reducen el Costo',
-            xaxis_title='Coeficiente (logit)', height=500
-        )
-        st.plotly_chart(fig_coef, use_container_width=True)
+            """)
+            coefs = pd.Series(c['rl'].coef_[0], index=c['feat_clf'])
+            coefs_top = pd.concat([coefs.nlargest(10), coefs.nsmallest(10)]).drop_duplicates().sort_values()
+            coefs_top.index = [i.replace('GRUPO LABORES_', '').replace('Tipo Labor_', '')
+                               for i in coefs_top.index]
+            colores_c = ['#e74c3c' if v > 0 else '#3498db' for v in coefs_top.values]
+            fig_coef = go.Figure(go.Bar(
+                x=coefs_top.values, y=coefs_top.index,
+                orientation='h', marker_color=colores_c,
+                marker_line_color='black', marker_line_width=0.5
+            ))
+            fig_coef.add_vline(x=0, line_dash='dash', line_color='black')
+            fig_coef.update_layout(
+                title='Coeficientes Logisticos — Variables que Aumentan o Reducen el Costo',
+                xaxis_title='Coeficiente (logit)', height=500
+            )
+            st.plotly_chart(fig_coef, use_container_width=True)
+
+        with col_der:
+            prec_rl   = round(precision_score(c['y_test'], c['y_pred_rl'],  zero_division=0), 4)
+            recall_rl = round(recall_score(c['y_test'],    c['y_pred_rl'],  zero_division=0), 4)
+            f1_rl     = round(f1_score(c['y_test'],        c['y_pred_rl'],  zero_division=0), 4)
+            st.markdown(f"""
+<div style="background:#1b3a5c;border-radius:10px;padding:1rem;text-align:center;
+            border:1px solid #48cae4;margin-bottom:0.5rem">
+    <div style="color:#caf0f8;font-size:0.75rem;font-weight:600">🎯 CLASE COSTOSA</div>
+    <div style="color:#90e0ef;font-size:0.7rem;margin-top:0.5rem">Regresion Logistica</div>
+    <hr style="border-color:#023e8a;margin:0.5rem 0">
+    <div style="color:#ffffff;font-size:1.3rem;font-weight:700">{prec_rl:.1%}</div>
+    <div style="color:#caf0f8;font-size:0.7rem">Precision</div>
+    <div style="color:#ffffff;font-size:1.3rem;font-weight:700;margin-top:0.5rem">{recall_rl:.1%}</div>
+    <div style="color:#caf0f8;font-size:0.7rem">Recall</div>
+    <div style="color:#ffffff;font-size:1.3rem;font-weight:700;margin-top:0.5rem">{f1_rl:.1%}</div>
+    <div style="color:#caf0f8;font-size:0.7rem">F1 Score</div>
+</div>""", unsafe_allow_html=True)
 
     with subtab_c:
         st.markdown("#### Importancia de Variables — Arbol de Decision")
