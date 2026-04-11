@@ -366,14 +366,15 @@ if len(df) == 0:
 # TABS PRINCIPALES
 # ══════════════════════════════════════════════════════════════
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "📊 Resumen Ejecutivo",
     "🔍 EDA & Hallazgos",
     "📈 Regresion & RF",
     "📅 SARIMA 2026",
     "🎯 Clasificacion",
     "🗺️ Clustering",
-    "🧮 Simulador"
+    "🧮 Simulador",
+    "📋 Recomendaciones"
 ])
 
 # ══════════════════════════════════════════════════════════════
@@ -1221,29 +1222,52 @@ with tab5:
 
     with subtab_b:
         st.markdown("#### Coeficientes Regresion Logistica")
-        st.markdown("Variables que **aumentan** (rojo) o **reducen** (azul) la probabilidad de ser una labor costosa.")
-        st.markdown("""
+
+        # ── Tarjetas de metricas reales en los espacios laterales ──
+        col_izq, col_centro, col_der = st.columns([1, 2, 1])
+
+        with col_izq:
+            acc_rl  = round(accuracy_score(c['y_test'], c['y_pred_rl']), 4)
+            auc_rl  = round(roc_auc_score(c['y_test'], c['y_proba_rl']), 4)
+            st.markdown("**📊 Metricas Globales**")
+            st.markdown("*Regresion Logistica*")
+            st.metric("Accuracy",  f"{acc_rl:.2%}")
+            st.metric("AUC-ROC",   f"{auc_rl:.4f}")
+
+        with col_centro:
+            st.markdown("Variables que **aumentan** (rojo) o **reducen** (azul) la probabilidad de ser una labor costosa.")
+            st.markdown("""
 > **Como leer este grafico:**
 > - **Barras rojas (coef. positivo):** esa variable AUMENTA la probabilidad de que la labor sea costosa.
 > - **Barras azules (coef. negativo):** esa variable REDUCE la probabilidad de costo alto.
 > - **Magnitud:** entre mayor la barra, mas importante es esa variable para la decision del modelo.
-        """)
-        coefs = pd.Series(c['rl'].coef_[0], index=c['feat_clf'])
-        coefs_top = pd.concat([coefs.nlargest(10), coefs.nsmallest(10)]).drop_duplicates().sort_values()
-        coefs_top.index = [i.replace('GRUPO LABORES_', '').replace('Tipo Labor_', '')
-                           for i in coefs_top.index]
-        colores_c = ['#e74c3c' if v > 0 else '#3498db' for v in coefs_top.values]
-        fig_coef = go.Figure(go.Bar(
-            x=coefs_top.values, y=coefs_top.index,
-            orientation='h', marker_color=colores_c,
-            marker_line_color='black', marker_line_width=0.5
-        ))
-        fig_coef.add_vline(x=0, line_dash='dash', line_color='black')
-        fig_coef.update_layout(
-            title='Coeficientes Logisticos — Variables que Aumentan o Reducen el Costo',
-            xaxis_title='Coeficiente (logit)', height=500
-        )
-        st.plotly_chart(fig_coef, use_container_width=True)
+            """)
+            coefs = pd.Series(c['rl'].coef_[0], index=c['feat_clf'])
+            coefs_top = pd.concat([coefs.nlargest(10), coefs.nsmallest(10)]).drop_duplicates().sort_values()
+            coefs_top.index = [i.replace('GRUPO LABORES_', '').replace('Tipo Labor_', '')
+                               for i in coefs_top.index]
+            colores_c = ['#e74c3c' if v > 0 else '#3498db' for v in coefs_top.values]
+            fig_coef = go.Figure(go.Bar(
+                x=coefs_top.values, y=coefs_top.index,
+                orientation='h', marker_color=colores_c,
+                marker_line_color='black', marker_line_width=0.5
+            ))
+            fig_coef.add_vline(x=0, line_dash='dash', line_color='black')
+            fig_coef.update_layout(
+                title='Coeficientes Logisticos — Variables que Aumentan o Reducen el Costo',
+                xaxis_title='Coeficiente (logit)', height=500
+            )
+            st.plotly_chart(fig_coef, use_container_width=True)
+
+        with col_der:
+            prec_rl   = round(precision_score(c['y_test'], c['y_pred_rl'],  zero_division=0), 4)
+            recall_rl = round(recall_score(c['y_test'],    c['y_pred_rl'],  zero_division=0), 4)
+            f1_rl     = round(f1_score(c['y_test'],        c['y_pred_rl'],  zero_division=0), 4)
+            st.markdown("**🎯 Clase Costosa**")
+            st.markdown("*Regresion Logistica*")
+            st.metric("Precision", f"{prec_rl:.2%}")
+            st.metric("Recall",    f"{recall_rl:.2%}")
+            st.metric("F1 Score",  f"{f1_rl:.2%}")
 
     with subtab_c:
         st.markdown("#### Importancia de Variables — Arbol de Decision")
@@ -1650,6 +1674,92 @@ with tab7:
 > Usa este grafico para decidir que grupos de labor priorizar en la planificacion del mes.
     """)
 
+
+# ══════════════════════════════════════════════════════════════
+# TAB 8 — RECOMENDACIONES
+# ══════════════════════════════════════════════════════════════
+
+with tab8:
+    st.markdown("## 📋 Recomendaciones Priorizadas — Riopaila Castilla")
+    st.markdown("Basadas en el analisis de 117,000 registros SAP (2021-2025) y los resultados de los modelos predictivos.")
+    st.markdown("---")
+
+    st.markdown("""<div class="alert-box">
+        <b>🌱 1. Foco en Fertilizacion, Malezas y Riego</b><br>
+        Estas tres labores concentran mas del <b>50% del presupuesto operativo</b>.
+        Son el punto de partida para cualquier iniciativa de reduccion de costos.
+        ABONO APORQUE y RIEGO GRAVEDAD COMPUERTAS MOTOBOMBA suman el 24% del total.
+    </div>""", unsafe_allow_html=True)
+
+    st.markdown("""<div class="alert-box">
+        <b>📄 2. Negociar Contratos de Volumen con Proveedores</b><br>
+        Los dos materiales mas costosos acumulan cientos de miles de millones en 5 anos.
+        Negociar contratos de largo plazo puede generar ahorros significativos
+        sin afectar la continuidad operativa del ingenio.
+    </div>""", unsafe_allow_html=True)
+
+    st.markdown("""<div class="success-box">
+        <b>🎯 3. Implementar Alertas Tempranas con el Arbol de Decision (P75)</b><br>
+        El modelo detecta el <b>86% de las labores costosas</b> antes de ejecutarlas
+        (Recall=85.9%, AUC=0.838). Umbral: $1.149.972 por labor.
+        Permite intervenir proactivamente antes de que el costo ocurra.
+    </div>""", unsafe_allow_html=True)
+
+    st.markdown("""<div class="success-box">
+        <b>📅 4. Planificacion Presupuestaria con Regresion y SARIMA</b><br>
+        Usar <b>Random Forest</b> (R²≈0.72) para presupuestar labores especificas
+        y <b>SARIMA</b> para proyectar el presupuesto mensual del siguiente semestre.
+        Febrero y el segundo semestre requieren mayor reserva presupuestaria.
+    </div>""", unsafe_allow_html=True)
+
+    st.markdown("""<div class="alert-box">
+        <b>⚠️ 5. Auditar los 248 Lotes Ineficientes — Accion Urgente</b><br>
+        El clustering identifico <b>248 lotes</b> con costo por unidad
+        <b>5 veces mayor</b> que los Lotes de Elite ($145.140 vs $28.043).
+        Auditarlos y replicar las practicas de los mejores lotes es la mayor
+        oportunidad de ahorro operativo identificada en este proyecto.
+    </div>""", unsafe_allow_html=True)
+
+    st.markdown("""<div class="info-box">
+        <b>📊 6. Enriquecer los Datos para Mejorar los Modelos</b><br>
+        Incorporar variables climaticas del IDEAM, datos de contratos con proveedores
+        y costos por hectarea mejoraria el R² y reduciria los intervalos del SARIMA.
+    </div>""", unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("""
+> **Frase clave:** *"Nuestros modelos no solo describen lo que paso — le dicen al gerente
+> que hacer manana: donde negociar, que lotes auditar y que labores revisar antes de ejecutar."*
+    """)
+
+    rec_df = pd.DataFrame({
+        'Prioridad': ['🔴 Alta','🔴 Alta','🟡 Media','🟡 Media','🔴 Alta','🟢 Baja'],
+        'Recomendacion': [
+            'Foco en Fertilizacion, Malezas y Riego',
+            'Negociar contratos de volumen',
+            'Alertas tempranas Arbol Decision (P75)',
+            'Planificacion con Regresion / SARIMA',
+            'Auditar 248 lotes ineficientes',
+            'Enriquecer los datos'
+        ],
+        'Modelo': [
+            'EDA — Costos por grupo',
+            'EDA — Top 10 materiales',
+            'Arbol Decision (Recall 86%, AUC 0.84)',
+            'Random Forest (R²=0.72) + SARIMA',
+            'K-Means Clustering (4 segmentos)',
+            'Analisis de limitaciones'
+        ],
+        'Impacto': [
+            'Alto — 50%+ del presupuesto',
+            'Alto — 24% del presupuesto',
+            'Alto — alertas proactivas',
+            'Medio — mejor planificacion',
+            'Muy Alto — 5x diferencia eficiencia',
+            'Medio — mejora precision'
+        ]
+    })
+    st.dataframe(rec_df, use_container_width=True, hide_index=True)
 
 # ── Footer ────────────────────────────────────────────────────
 st.markdown("---")
